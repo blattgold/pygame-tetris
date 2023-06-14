@@ -4,11 +4,15 @@ import pygame
 import random
 import sys
 import os
+import gui
 from enum import Enum
 
 GRID_SIZE = 40
 LEVEL_W = GRID_SIZE * 10
-LEVEL_H = GRID_SIZE * 20 
+LEVEL_H = GRID_SIZE * 20
+
+pygame.font.init()
+FONT_ARIAL = pygame.font.Font(os.path.join("assets", "fonts", "Arialn.ttf"), 40)
 
 IMG_BLOCK_BLUE = pygame.image.load(os.path.join("assets", "block_blue.png"))
 IMG_BLOCK_CYAN = pygame.image.load(os.path.join("assets", "block_cyan.png"))
@@ -29,7 +33,7 @@ BLOCK_IMGS = [False,
               IMG_BLOCK_RED,
               IMG_BLOCK_YELLOW]
 
-def get_rotations(piece):              
+def get_rotations(piece):
     result = [piece]
     result.append(list (map(lambda x: (-x[1], x[0]),piece)))
     result.append(list (map(lambda x: (-x[0], -x[1]),piece)))
@@ -42,9 +46,9 @@ all_pieces = [[[(0,0), (-1,0), (1,0), (-2,0)],
               get_rotations([(0,0), (-1,0), (1,0), (-1,1)]), # L
               [[(0,0), (0,1), (-1,0), (-1,1)]], # O
               [[(0,0), (-1,0), (-1,-1), (0,1)],
-               [(0,0), (0,-1), (1, -1), (-1,0)]], # S 
+               [(0,0), (0,-1), (1, -1), (-1,0)]], # S
               [[(0,0), (-1,-1), (1,0), (0,-1)],
-               [(0,0), (1,-1), (0, 1), (1,0)]], # Z 
+               [(0,0), (1,-1), (0, 1), (1,0)]], # Z
               get_rotations([(0,0), (0,-1), (1,0), (-1,0)])] # T
 
 class Tet:
@@ -53,16 +57,16 @@ class Tet:
     piece_w_rot = 0
     rot_index = 0
     moving = True
-    ticks_per_frame = 3 
+    ticks_per_frame = 3
     current_tick = 0
-    move_on_tick = 100 # block moves down on move_on_tick. 
+    move_on_tick = 100 # block moves down on move_on_tick.
     level = 0
     color = 1
 
     def __init__(self
                  ,level
-                 ,x=LEVEL_W//2 
-                 ,y=0 
+                 ,x=LEVEL_W//2
+                 ,y=0
                  ,piece=all_pieces[random.randint(0,6)]
                  ,tpf=5):
         self.piece_w_rot = piece.copy()
@@ -146,7 +150,7 @@ class Level:
         self.map = [[0 for i in range(10)] for j in range(20)]
         self.tet = Tet(self)
         self.game = game
-    
+
     def get_map(self):
         return self.map.copy()
 
@@ -165,8 +169,8 @@ class Level:
         self.clear_lines()
         self.game.update_score(1)
         self.tet = Tet(self, LEVEL_W // 2, 0, all_pieces[random.randint(0,6)])
-    
-    def occupied(self, x_off=0, y_off=0): 
+
+    def occupied(self, x_off=0, y_off=0):
         for pr in self.tet.getPiece()[self.tet.getRotIndex()]:
             y = self.tet.get_y() // GRID_SIZE + pr[1] + y_off
             x = self.tet.get_x() // GRID_SIZE + pr[0] + x_off
@@ -196,10 +200,10 @@ class Level:
 
     def check_game_over(self):
         return any(map(lambda x: x != 0, self.map[0]))
-            
+
 class Game:
     game_states = Enum("game_states", ["menu", "pause", "playing", "gameover"])
-    game_state = game_states.menu 
+    game_state = game_states.menu
     score = 0
     level = False
     gui = []
@@ -237,7 +241,7 @@ class Game:
                     if event.key == pygame.K_a:
                         tet.move_l()
                     elif event.key == pygame.K_d:
-                        tet.move_r() 
+                        tet.move_r()
                     if event.key == pygame.K_ESCAPE:
                         self.change_state(self.game_states.pause)
             elif self.game_state == self.game_states.pause:
@@ -257,10 +261,10 @@ class Game:
 
     def init_state_playing(self):
         self.gui.clear()
-        
+
         if self.level == False:
             self.level = Level(self)
-        
+
         self.update_score_gui()
 
         self.game_state = self.game_states.playing
@@ -274,9 +278,9 @@ class Game:
         self.game_state = self.game_states.gameover
         self.level = False
         self.score = 0
-    
+
     def update_score_gui(self):
-        pass
+        self.gui["score_gui"] = gui.Text("Score: " + str(self.score), FONT_ARIAL)
 
     def update_score(self, score):
         self.score += score
@@ -287,7 +291,7 @@ class Game:
 
 def drawTet(screen, piece):
     for actual in (piece.getPiece())[piece.getRotIndex()]:
-        pygame.draw.rect(screen, (100, 100, 0), pygame.Rect(piece.get_x() + actual[0] * GRID_SIZE, 
+        pygame.draw.rect(screen, (100, 100, 0), pygame.Rect(piece.get_x() + actual[0] * GRID_SIZE,
                                                             piece.get_y() + actual[1] * GRID_SIZE,
                                                             GRID_SIZE,
                                                             GRID_SIZE))
@@ -304,7 +308,7 @@ def main():
     screen = pygame.display.set_mode((LEVEL_W, LEVEL_H))
     clock = pygame.time.Clock()
     running = True
-    
+
     gui = {}
 
     game = Game(gui)
@@ -322,11 +326,10 @@ def main():
 
         draw_before_gui()
         for element in gui.values():
-            element.get_updater().update()
+            element.draw(screen)
         pygame.display.flip()
-       
+
     pygame.quit()
 
 if __name__ == "__main__":
     main()
-
