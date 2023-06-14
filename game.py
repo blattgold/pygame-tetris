@@ -72,27 +72,6 @@ class Tet:
         self.ticks_per_frame = tpf
         self.level = level
         self.color = random.randint(1,7)
-   # returns True if moving right would cause a collision or oob 
-    def collided_right(self):
-        try:
-            return any(map(lambda tp: self.x + tp[0] * GRID_SIZE >= LEVEL_W - GRID_SIZE 
-                           ,self.piece_w_rot[self.rot_index]))
-        except IndexError:
-            return True
-    # returns True if moving left would cause a collision or oob 
-    def collided_left(self):
-        try:
-            return any(map(lambda tp: self.x + tp[0] * GRID_SIZE < 0 + GRID_SIZE
-                           ,self.piece_w_rot[self.rot_index])) 
-        except IndexError:
-            return True
-    # returns True if moving down would cause a collision or oob
-    def collided_bottom(self):
-        try: 
-            return any(map(lambda tp: self.y + tp[1] * GRID_SIZE >= LEVEL_H - GRID_SIZE
-                           ,self.piece_w_rot[self.rot_index]))
-        except IndexError:
-            return True
     # increases current_tick by ticks_per_frame on each call.
     # returns True if current_tick reached move_on_tick and sets current_tick to 0. Otherwise False
     def tick(self):
@@ -105,18 +84,18 @@ class Tet:
 
     def update(self):
         if self.moving and self.tick():
-            if self.collided_bottom() or self.level.occupied(0, 1): # would collide on move
+            if self.level.occupied(0, 1): # would collide on move
                 self.moving = False
                 self.level.assimilate()
                 return
             self.y += GRID_SIZE
 
     def move_r(self):
-        if not self.collided_right() and not self.level.occupied(1) and self.moving:
+        if not self.level.occupied(1) and self.moving:
             self.x += GRID_SIZE
 
     def move_l(self):
-        if not self.collided_left() and not self.level.occupied(-1) and self.moving:
+        if not self.level.occupied(-1) and self.moving:
             self.x -= GRID_SIZE
 
     def rotate(self):
