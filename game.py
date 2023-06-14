@@ -4,7 +4,6 @@ import pygame
 import random
 import sys
 import os
-import thorpy
 from enum import Enum
 
 GRID_SIZE = 40
@@ -277,9 +276,7 @@ class Game:
         self.score = 0
     
     def update_score_gui(self):
-        text = thorpy.Text("Score: " + str(self.score), 30, (0,0,0))
-        text.set_topleft(0,0)
-        self.gui["score_gui"] = text 
+        pass
 
     def update_score(self, score):
         self.score += score
@@ -307,8 +304,7 @@ def main():
     screen = pygame.display.set_mode((LEVEL_W, LEVEL_H))
     clock = pygame.time.Clock()
     running = True
-
-    thorpy.init(screen, thorpy.theme_human)
+    
     gui = {}
 
     game = Game(gui)
