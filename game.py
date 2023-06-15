@@ -56,7 +56,6 @@ class Tet:
     y = 0
     piece_w_rot = 0
     rot_index = 0
-    moving = True
     ticks_per_frame = 3
     current_tick = 0
     move_on_tick = 100 # block moves down on move_on_tick.
@@ -86,19 +85,18 @@ class Tet:
             return False
 
     def update(self):
-        if self.moving and self.tick():
+        if self.tick():
             if self.level.occupied(0, 1): # would collide on move
-                self.moving = False
                 self.level.assimilate()
                 return
             self.y += GRID_SIZE
 
     def move_r(self):
-        if not self.level.occupied(1) and self.moving:
+        if not self.level.occupied(1):
             self.x += GRID_SIZE
 
     def move_l(self):
-        if not self.level.occupied(-1) and self.moving:
+        if not self.level.occupied(-1):
             self.x -= GRID_SIZE
 
     def rotate(self):
@@ -153,9 +151,6 @@ class Level:
 
     def get_map(self):
         return self.map.copy()
-
-    def set_map(self, map):
-        self.map = map
 
     def get_tet(self):
         return self.tet
