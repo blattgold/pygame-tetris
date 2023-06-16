@@ -265,6 +265,14 @@ class Game:
         self.game_state = self.game_states.playing
 
     def init_state_pause(self):
+        self.gui["pause_menu"] = gui.Container(LEVEL_W // 2, 
+                                               LEVEL_H // 2, 
+                                               LEVEL_W // 1.5, 
+                                               LEVEL_H // 2)
+        self.gui["pause_menu"].add_child(gui.Text("Game Paused", FONT_ARIAL))
+        self.gui["pause_menu"].add_child(gui.Text("Element1", FONT_ARIAL))
+        self.gui["pause_menu"].add_child(gui.Text("Element2", FONT_ARIAL))
+        self.gui["pause_menu"].add_child(gui.Text("Element3", FONT_ARIAL))
         self.game_state = self.game_states.pause
 
     def init_state_gameover(self):
