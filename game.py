@@ -207,7 +207,7 @@ class Game:
 
     def __init__(self, gui):
         self.gui = gui
-        self.change_state(self.game_states.playing)
+        self.change_state(self.game_states.menu)
 
     def loop(self):
         if self.game_state == self.game_states.menu:
@@ -229,6 +229,7 @@ class Game:
         for event in events:
             if event.type == pygame.QUIT:
                 self.quit = True
+
             if self.game_state == self.game_states.playing:
                 tet = self.level.get_tet()
                 if event.type == pygame.KEYDOWN:
@@ -240,6 +241,7 @@ class Game:
                         tet.move_r()
                     if event.key == pygame.K_ESCAPE:
                         self.change_state(self.game_states.pause)
+
             elif self.game_state == self.game_states.pause:
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
@@ -247,13 +249,33 @@ class Game:
 
     def change_state(self, target_state):
         if target_state == self.game_states.menu:
-            pass
+            self.init_state_menu()
         elif target_state == self.game_states.pause:
             self.init_state_pause()
         elif target_state == self.game_states.playing:
             self.init_state_playing()
         elif target_state == self.game_states.gameover:
             self.init_state_gameover()
+
+    def init_state_menu(self):
+        self.gui.clear()
+        self.gui["main_menu"] = gui.Container(LEVEL_W // 2,
+                                              LEVEL_H // 2) \
+        .set_border_w(3) \
+        .set_border_color((160,160,160)) \
+        .set_color((200,200,200)) \
+        .set_corner_roundness(10) \
+        .set_padding((10,10,10,10))
+        self.gui["main_menu"].add_child(gui.Button(gui.Text("Start Game", FONT_ARIAL))) \
+        .set_border_w(3) \
+        .set_border_color((0,0,0)) \
+        .set_color((100,100,100)) \
+        .set_padding((5,10,5,10))
+        self.gui["main_menu"].add_child(gui.Button(gui.Text("Settings", FONT_ARIAL))) \
+        .set_border_w(3) \
+        .set_border_color((0,0,0)) \
+        .set_color((100,100,100)) \
+        .set_padding((5,10,5,10))
 
     def init_state_playing(self):
         self.gui.clear()
@@ -270,7 +292,7 @@ class Game:
                                                LEVEL_H // 2) \
         .set_border_w(3) \
         .set_border_color((160,160,160)) \
-        .set_color((200,200,200,0)) \
+        .set_color((200,200,200)) \
         .set_corner_roundness(10) \
         .set_padding((10,10,10,10)) \
         .add_child(gui.Text("Game Paused", FONT_ARIAL_55)) 
