@@ -266,13 +266,17 @@ class Game:
 
     def init_state_pause(self):
         self.gui["pause_menu"] = gui.Container(LEVEL_W // 2, 
-                                               LEVEL_H // 2, 
-                                               LEVEL_W // 1.5, 
-                                               LEVEL_H // 2)
-        self.gui["pause_menu"].add_child(gui.Text("Game Paused", FONT_ARIAL))
-        self.gui["pause_menu"].add_child(gui.Text("Element1", FONT_ARIAL))
-        self.gui["pause_menu"].add_child(gui.Text("Element2", FONT_ARIAL))
-        self.gui["pause_menu"].add_child(gui.Text("Element3", FONT_ARIAL))
+                                               LEVEL_H // 2) \
+        .set_border_w(3) \
+        .set_border_color((160,160,160)) \
+        .set_color((200,200,200,0)) \
+        .set_corner_roundness(10) \
+        .set_padding((30,10,30,10)) \
+        .add_child(gui.Text("Game Paused", FONT_ARIAL)) \
+        .add_child(gui.Text("Element1", FONT_ARIAL)) \
+        .add_child(gui.Text("Element2", FONT_ARIAL)) \
+        .add_child(gui.Text("Element3", FONT_ARIAL))
+
         self.game_state = self.game_states.pause
 
     def init_state_gameover(self):
@@ -329,6 +333,7 @@ def main():
 
         draw_before_gui()
         for element in gui.values():
+            element.update()
             element.draw(screen)
         pygame.display.flip()
 
