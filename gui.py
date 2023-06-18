@@ -23,6 +23,12 @@ class Element:
     def get_y(self):
         return self.y
 
+    def get_actual_x(self):
+        return self.actual_x
+
+    def get_actual_y(self):
+        return self.actual_y
+
     def set_x(self, x):
         self.x = x
 
@@ -36,10 +42,9 @@ class Element:
         return self.w
 
     def update(self):
-        if self.parent != False:
-            self.actual_x = self.x + self.parent.get_x()
+        pass
 
-    def draw(self):
+    def draw(self, x_off=0, y_off=0):
         pass
 
     def set_parent(self, element):
@@ -60,14 +65,22 @@ class Text(Element):
         self.w = int(self.font.render(self.content, True, (0,0,0)).get_width())
         self.h = int(self.font.render(self.content, True, (0,0,0)).get_height())
 
-    def draw(self, screen):
+    def draw(self, screen, x_off=0, y_off=0):
         text = self.font.render(self.content, True, (0,0,0))
 
         if self.parent == False:
-            screen.blit(text, (self.x, self.y))
+            screen.blit(text, (self.x + x_off, self.y + y_off))
         else:
-            screen.blit(text, (self.x + (self.parent.get_w() - self.w) + (self.w - self.parent.get_w()) // 2,
-                              (self.y)))
+            screen.blit(text, ((self.actual_x + (self.parent.get_w() - self.w) + (self.w - self.parent.get_w()) // 2) + x_off,
+                              (self.actual_y) + y_off))
+    
+    def update(self):
+        if self.parent != False:
+            self.actual_x = self.parent.get_actual_x() + self.x
+            self.actual_y = self.parent.get_actual_y() + self.y
+        else:
+            self.actual_x = self.x
+            self.actual_y = self.y
 
     def set_content(self, content):
         self.content = content
@@ -99,6 +112,7 @@ class Container(Element):
         self.w = w 
         self.h = h 
         self.center_origin = True
+        self.children = []
 
     def add_child(self, element):
         self.children.append(element)
@@ -113,23 +127,25 @@ class Container(Element):
             self.children.insert(pos, element)
         element.set_parent(self)
 
-    def draw(self, screen):
+    def draw(self, screen, x_off=0, y_off=0):
         if not self.invisible:
             pygame.draw.rect(screen, 
                              self.color,
-                             pygame.Rect(self.actual_x,
-                                         self.actual_y,
+                             pygame.Rect(self.actual_x + x_off,
+                                         self.actual_y + y_off,
                                          self.w,
                                          self.h))
-        self.draw_children(screen)
+        self.draw_children(screen, x_off, y_off)
 
-    def draw_children(self, screen):
-        prev_child = False
+    def draw_children(self, screen, x_off=0, y_off=0):
+        prev_child_h_sum = 0
         for child in self.children:
-            if prev_child != False:
-                pass
-            child.draw(screen)
-            prev_child = child
+            child.draw(screen, x_off, prev_child_h_sum + y_off)
+            prev_child_h_sum += child.get_h()
+
+    def update(self):
+        for child in self.children:
+            child.update()
 
 
 class Button(Element):
