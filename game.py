@@ -13,6 +13,7 @@ LEVEL_H = GRID_SIZE * 20
 
 pygame.font.init()
 FONT_ARIAL = pygame.font.Font(os.path.join("assets", "fonts", "Arialn.ttf"), 40)
+FONT_ARIAL_55 = pygame.font.Font(os.path.join("assets", "fonts", "Arialn.ttf"), 55)
 
 IMG_BLOCK_BLUE = pygame.image.load(os.path.join("assets", "block_blue.png"))
 IMG_BLOCK_CYAN = pygame.image.load(os.path.join("assets", "block_cyan.png"))
@@ -271,11 +272,8 @@ class Game:
         .set_border_color((160,160,160)) \
         .set_color((200,200,200,0)) \
         .set_corner_roundness(10) \
-        .set_padding((30,10,30,10)) \
-        .add_child(gui.Text("Game Paused", FONT_ARIAL)) \
-        .add_child(gui.Text("Element1", FONT_ARIAL)) \
-        .add_child(gui.Text("Element2", FONT_ARIAL)) \
-        .add_child(gui.Text("Element3", FONT_ARIAL))
+        .set_padding((10,10,10,10)) \
+        .add_child(gui.Text("Game Paused", FONT_ARIAL_55)) 
 
         self.game_state = self.game_states.pause
 

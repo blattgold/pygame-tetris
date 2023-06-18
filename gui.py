@@ -43,6 +43,10 @@ class Element:
     def get_w(self):
         return self.w
 
+    def set_color(self, color):
+        self.color = color
+        return self
+
     def update(self):
         self.actual_x = self.x
         self.actual_y = self.y
@@ -198,10 +202,6 @@ class Container(Element):
 
     def set_corner_roundness(self, roundness):
         self.corner_roundness = roundness
-        return self
-
-    def set_color(self, color):
-        self.color = color
         return self
 
     def set_padding(self, padding):
