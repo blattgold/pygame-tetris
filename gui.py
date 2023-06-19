@@ -13,6 +13,7 @@ class Element:
     center_origin = False
     color = (0,0,0)
     invisible = False
+    selectable = False
 
     def __init__(self, x=0, y=0):
         self.x = x
@@ -53,6 +54,9 @@ class Element:
     def set_color(self, color):
         self.color = color
         return self
+
+    def get_selectable(self):
+        return self.selectable
 
     def update(self):
         self.actual_x = self.x
@@ -109,7 +113,7 @@ class Text(Element):
     def get_font(self):
         return self.font
 
-class AbstractBox(Element):
+class BoxElement(Element):
     align_modes = Enum("align_modes", ["left", "center", "right"])
     align_mode = align_modes.center
     border_w = 0
@@ -119,6 +123,10 @@ class AbstractBox(Element):
 
     def __init__(self, x=0, y=0):
         super().__init__(x,y)
+        self.border_w = 0
+        self.border_color = (0,0,0)
+        self.corner_roundness = 0
+        self.padding = (0,0,0,0)
 
     def draw(self, screen, x_off=0, y_off=0):
         self.actual_x += x_off
@@ -162,13 +170,18 @@ class AbstractBox(Element):
         return self
 
 
-class Container(AbstractBox):
+class Container(BoxElement):
     children = []
+    child_spacing = 0
 
     def __init__(self, x=0, y=0):
         super().__init__(x,y)
         self.center_origin = True
         self.children = []
+
+    def set_child_spacing(self, spacing):
+        self.child_spacing = spacing
+        return self
 
     def add_child(self, element):
         self.children.append(element)
@@ -199,7 +212,7 @@ class Container(AbstractBox):
             elif self.align_mode == self.align_modes.center:
                 child.draw(screen, x_off + (self.w - child.get_w() // 2) - self.w // 2, y_off)
 
-            prev_child_h_sum += child.get_h()
+            prev_child_h_sum += child.get_h() + self.child_spacing
 
     def update(self):
 
@@ -207,8 +220,10 @@ class Container(AbstractBox):
         self.w = 0
 
         highest_child_w = 0
-        for child in self.children:
+        for child_index, child in enumerate(self.children):
             self.h += child.get_h()
+            if child_index != 0:
+                self.h += self.child_spacing
             if highest_child_w < child.get_w():
                 highest_child_w = child.get_w()
                 self.w = child.get_w()
@@ -221,32 +236,96 @@ class Container(AbstractBox):
         for child in self.children:
             child.update()
 
+    def update_selected(self, d):
+        selectable = self.find_selectable()
+        if selectable != False:
+            if len(selectable) > 1:
+                current = self.get_selected(selectable)
+                if current != False:
+                    if current[0] + d < len(selectable) and current[0] + d >= 0:
+                        current[1].set_selected(False)
+                        selectable[(current[0]) + d].set_selected(True)
+                else:
+                    selectable[0].set_selected(True)
+
+    def find_selectable(self):
+        selectable = []
+        for child in self.children:
+            if child.get_selectable():
+                selectable.append(child)
+        if len(selectable) == 0:
+            return False
+        else:
+            return selectable
+
+    def get_selected(self, selectable=False):
+        if selectable == False:
+            selectable = self.find_selectable()
+        for s_index, s in enumerate(selectable):
+            if s.get_selected():
+                return (s_index, s)
+        return False
 
 
-
-class Button(AbstractBox):
+class Button(BoxElement):
     selected = False
     child_label = False
+    color_deselected = (0,0,0)
+    color_selected = (0,0,0)
+    on_click_fun = lambda self : print("unassigned button action")
+    on_click_fun_args = []
 
     def __init__(self, label, x=0, y=0):
         super().__init__(x,y)
+        self.selectable = True
         self.align_mode = self.align_modes.left
         self.child_label = label
+        self.on_click_caller = self
         label.set_parent(self)
+
+    def set_selected(self, selected):
+        self.selected = selected
+        return self
+
+    def get_selected(self):
+        return self.selected
+
+    def set_color_deselected(self, color):
+        self.color_deselected = color
+        return self
+
+    def set_color_selected(self,color):
+        self.color_selected = color
+        return self
 
     def draw(self, screen, x_off, y_off):
         super().draw(screen, x_off, y_off)
 
         self.child_label.set_actual_y(self.actual_y + self.child_label.get_y())
         self.child_label.set_actual_x(self.actual_x + self.child_label.get_x())
-        if self.align_mode == self.align_modes.left:
-            self.child_label.draw(screen, 0 + self.padding[3], 0 + self.padding[0])
+
+        self.child_label.draw(screen, 0 + self.padding[3], 0 + self.padding[0])
 
     def update(self):
         super().update()
         self.child_label.update()
         self.h = self.child_label.get_h() + self.padding[0] + self.padding[2]
         self.w = self.child_label.get_w() + self.padding[1] + self.padding[3]
+
+        if self.selected:
+            self.color = self.color_selected
+        else:
+            self.color = self.color_deselected
+
+    def on_click(true_self):
+        self = true_self.on_click_caller
+        return true_self.on_click_fun(*(true_self.on_click_fun_args))
+
+    def set_on_click(self,caller,fun,args):
+        self.on_click_fun = fun
+        self.on_click_caller = caller
+        self.on_click_fun_args = args
+        return self
 
 
 
