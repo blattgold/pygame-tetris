@@ -207,7 +207,7 @@ class Game:
 
     def __init__(self, gui):
         self.gui = gui
-        self.change_state(self.game_states.menu)
+        self.init_state_menu()
 
     def loop(self):
         if self.game_state == self.game_states.menu:
@@ -240,12 +240,12 @@ class Game:
                     elif event.key == pygame.K_d:
                         tet.move_r()
                     if event.key == pygame.K_ESCAPE:
-                        self.change_state(self.game_states.pause)
+                        self.init_state_pause()
 
             elif self.game_state == self.game_states.pause:
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
-                        self.change_state(self.game_states.playing)
+                        self.init_state_playing()
 
             elif self.game_state == self.game_states.menu:
                 if event.type == pygame.KEYDOWN:
@@ -256,16 +256,6 @@ class Game:
                     if event.key == pygame.K_SPACE:
                         if self.gui["main_menu"].get_selected() != False:
                             self.gui["main_menu"].get_selected()[1].on_click()
-
-    def change_state(self, target_state):
-        if target_state == self.game_states.menu:
-            self.init_state_menu()
-        elif target_state == self.game_states.pause:
-            self.init_state_pause()
-        elif target_state == self.game_states.playing:
-            self.init_state_playing()
-        elif target_state == self.game_states.gameover:
-            self.init_state_gameover()
 
     def init_state_menu(self):
         self.gui.clear()
@@ -284,7 +274,7 @@ class Game:
         .set_color_deselected((100,100,100)) \
         .set_color_selected((100,200,100)) \
         .set_padding((5,10,5,10)) \
-        .set_on_click(self,self.change_state, [self.game_states.playing]))
+        .set_on_click(self,self.init_state_playing, []))
         self.gui["main_menu"].add_child(gui.Button(gui.Text("Quit", FONT_ARIAL)) \
         .set_border_w(3) \
         .set_border_color((0,0,0)) \
@@ -311,7 +301,9 @@ class Game:
         .set_color((200,200,200)) \
         .set_corner_roundness(10) \
         .set_padding((10,10,10,10)) \
-        .add_child(gui.Text("Game Paused", FONT_ARIAL_55)) 
+        .set_child_spacing(0) \
+        .add_child(gui.Text("Game Paused", FONT_ARIAL_55)) \
+        .add_child(gui.Text("Test", FONT_ARIAL))
 
         self.game_state = self.game_states.pause
 

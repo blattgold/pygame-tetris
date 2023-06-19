@@ -1,6 +1,5 @@
 from enum import Enum
 import pygame
-import functools
 
 class Element:
     x = 0
@@ -63,8 +62,8 @@ class Element:
         self.actual_y = self.y
 
         if self.parent != False:
-            self.actual_x = self.parent.get_actual_x() + self.actual_x
-            self.actual_y = self.parent.get_actual_y() + self.actual_y
+            self.actual_x += self.parent.get_actual_x()
+            self.actual_y += self.parent.get_actual_y()
 
         if self.center_origin:
             self.actual_x = self.actual_x - self.w // 2
@@ -93,8 +92,7 @@ class Text(Element):
     def draw(self, screen, x_off=0, y_off=0):
         text = self.font.render(self.content, True, self.color)
 
-        screen.blit(text, (self.actual_x + x_off,
-                              (self.actual_y) + y_off))
+        screen.blit(text, (self.actual_x + x_off, self.actual_y + y_off))
     
     def update(self):
         super().update()
@@ -115,7 +113,7 @@ class Text(Element):
 
 class BoxElement(Element):
     align_modes = Enum("align_modes", ["left", "center", "right"])
-    align_mode = align_modes.center
+    align_mode = align_modes.right
     border_w = 0
     border_color = (0,0,0)
     corner_roundness = 0
@@ -129,13 +127,11 @@ class BoxElement(Element):
         self.padding = (0,0,0,0)
 
     def draw(self, screen, x_off=0, y_off=0):
-        self.actual_x += x_off
-        self.actual_y += y_off
         if not self.invisible:
             pygame.draw.rect(screen, 
                              self.color,
-                             pygame.Rect(self.actual_x,
-                                         self.actual_y,
+                             pygame.Rect(self.actual_x + x_off,
+                                         self.actual_y + y_off,
                                          self.w,
                                          self.h),
                              0,
@@ -143,8 +139,8 @@ class BoxElement(Element):
             if self.border_w > 0:
                 pygame.draw.rect(screen,
                                  self.border_color,
-                                 pygame.Rect(self.actual_x,
-                                             self.actual_y,
+                                 pygame.Rect(self.actual_x + x_off,
+                                             self.actual_y + y_off,
                                              self.w,
                                              self.h),
                                  self.border_w,
@@ -173,11 +169,12 @@ class BoxElement(Element):
 class Container(BoxElement):
     children = []
     child_spacing = 0
+    center_origin = True
 
     def __init__(self, x=0, y=0):
         super().__init__(x,y)
-        self.center_origin = True
         self.children = []
+        self.align_mode = self.align_modes.center
 
     def set_child_spacing(self, spacing):
         self.child_spacing = spacing
@@ -201,40 +198,50 @@ class Container(BoxElement):
     def draw(self, screen, x_off=0, y_off=0):
         super().draw(screen, x_off, y_off)
 
-        prev_child_h_sum = 0 + self.padding[0] 
         for child in self.children:
-            child.set_actual_y(child.get_actual_y() + prev_child_h_sum)
-
-            if self.align_mode == self.align_modes.left:
-                child.draw(screen, x_off + self.padding[3], y_off)
-            elif self.align_mode == self.align_modes.right:
-                child.draw(screen, x_off + (self.w - child.get_w()) - self.padding[1], y_off)
-            elif self.align_mode == self.align_modes.center:
-                child.draw(screen, x_off + (self.w - child.get_w() // 2) - self.w // 2, y_off)
-
-            prev_child_h_sum += child.get_h() + self.child_spacing
+            child.draw(screen, x_off, y_off)
 
     def update(self):
+        super().update()
 
         self.h = 0
         self.w = 0
 
         highest_child_w = 0
+        prev_children_h = 0
+
+        for child in self.children:
+            child.update()
+
         for child_index, child in enumerate(self.children):
             self.h += child.get_h()
-            if child_index != 0:
+
+            if child_index != 0 and child_index != len(self.children) - 1:
                 self.h += self.child_spacing
+
+            prev_children_h += self.child_spacing
+
+
             if highest_child_w < child.get_w():
                 highest_child_w = child.get_w()
                 self.w = child.get_w()
 
+            if self.align_mode == self.align_modes.left:
+                child.set_actual_x(child.get_actual_x() + self.padding[3])
+            elif self.align_mode == self.align_modes.right:
+                child.set_actual_x(child.get_actual_x() + (self.w - child.get_w()) + self.padding[1])
+            else: 
+                child.set_actual_x(child.get_actual_x() + (self.w - child.get_w() // 2) - self.w // 2  + self.padding[3])
+
+            child.set_actual_y(child.get_actual_y() + prev_children_h)
+
+            prev_children_h += child.get_h()
+
         self.h += self.padding[0] + self.padding[2]
         self.w += self.padding[1] + self.padding[3]
 
-        super().update()
 
-        for child in self.children:
-            child.update()
+
 
     def update_selected(self, d):
         selectable = self.find_selectable()
@@ -301,14 +308,9 @@ class Button(BoxElement):
     def draw(self, screen, x_off, y_off):
         super().draw(screen, x_off, y_off)
 
-        self.child_label.set_actual_y(self.actual_y + self.child_label.get_y())
-        self.child_label.set_actual_x(self.actual_x + self.child_label.get_x())
-
-        self.child_label.draw(screen, 0 + self.padding[3], 0 + self.padding[0])
+        self.child_label.draw(screen)
 
     def update(self):
-        super().update()
-        self.child_label.update()
         self.h = self.child_label.get_h() + self.padding[0] + self.padding[2]
         self.w = self.child_label.get_w() + self.padding[1] + self.padding[3]
 
@@ -316,6 +318,14 @@ class Button(BoxElement):
             self.color = self.color_selected
         else:
             self.color = self.color_deselected
+
+        self.child_label.update()
+        self.child_label.set_actual_x(self.child_label.get_actual_x() + self.padding[3])
+        self.child_label.set_actual_y(self.child_label.get_actual_y() + self.padding[0])
+
+        super().update()
+
+
 
     def on_click(true_self):
         self = true_self.on_click_caller
