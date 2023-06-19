@@ -278,20 +278,20 @@ class Game:
         .set_padding((10,10,10,10)) \
         .set_child_spacing(5) 
         self.gui["main_menu"].add_child(gui.Text("pygame-tetris", FONT_ARIAL_55))
-        self.gui["main_menu"].add_child(gui.Button(gui.Text("Start Game", FONT_ARIAL))) \
+        self.gui["main_menu"].add_child(gui.Button(gui.Text("Start Game", FONT_ARIAL)) \
         .set_border_w(3) \
         .set_border_color((0,0,0)) \
         .set_color_deselected((100,100,100)) \
         .set_color_selected((100,200,100)) \
         .set_padding((5,10,5,10)) \
-        .set_on_click(self,self.change_state, [self.game_states.playing])
-        self.gui["main_menu"].add_child(gui.Button(gui.Text("Quit", FONT_ARIAL))) \
+        .set_on_click(self,self.change_state, [self.game_states.playing]))
+        self.gui["main_menu"].add_child(gui.Button(gui.Text("Quit", FONT_ARIAL)) \
         .set_border_w(3) \
         .set_border_color((0,0,0)) \
         .set_color_deselected((100,100,100)) \
         .set_color_selected((100,200,100)) \
         .set_padding((5,10,5,10)) \
-        .set_on_click(self,self.set_quit, [])
+        .set_on_click(self,self.set_quit, []))
 
     def init_state_playing(self):
         self.gui.clear()

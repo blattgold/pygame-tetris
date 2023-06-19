@@ -186,7 +186,7 @@ class Container(BoxElement):
     def add_child(self, element):
         self.children.append(element)
         element.set_parent(self)
-        return element
+        return self
 
     def add_child_at(self, element, pos):
         if pos < 0:
