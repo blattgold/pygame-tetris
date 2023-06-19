@@ -13,6 +13,7 @@ LEVEL_H = GRID_SIZE * 20
 
 pygame.font.init()
 FONT_ARIAL = pygame.font.Font(os.path.join("assets", "fonts", "Arialn.ttf"), 40)
+FONT_ARIAL_55 = pygame.font.Font(os.path.join("assets", "fonts", "Arialn.ttf"), 55)
 
 IMG_BLOCK_BLUE = pygame.image.load(os.path.join("assets", "block_blue.png"))
 IMG_BLOCK_CYAN = pygame.image.load(os.path.join("assets", "block_cyan.png"))
@@ -206,7 +207,7 @@ class Game:
 
     def __init__(self, gui):
         self.gui = gui
-        self.change_state(self.game_states.playing)
+        self.change_state(self.game_states.menu)
 
     def loop(self):
         if self.game_state == self.game_states.menu:
@@ -228,6 +229,7 @@ class Game:
         for event in events:
             if event.type == pygame.QUIT:
                 self.quit = True
+
             if self.game_state == self.game_states.playing:
                 tet = self.level.get_tet()
                 if event.type == pygame.KEYDOWN:
@@ -239,20 +241,57 @@ class Game:
                         tet.move_r()
                     if event.key == pygame.K_ESCAPE:
                         self.change_state(self.game_states.pause)
+
             elif self.game_state == self.game_states.pause:
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
                         self.change_state(self.game_states.playing)
 
+            elif self.game_state == self.game_states.menu:
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_w:
+                        self.gui["main_menu"].update_selected(-1)
+                    if event.key == pygame.K_s:
+                        self.gui["main_menu"].update_selected(1)
+                    if event.key == pygame.K_SPACE:
+                        if self.gui["main_menu"].get_selected() != False:
+                            self.gui["main_menu"].get_selected()[1].on_click()
+
     def change_state(self, target_state):
         if target_state == self.game_states.menu:
-            pass
+            self.init_state_menu()
         elif target_state == self.game_states.pause:
             self.init_state_pause()
         elif target_state == self.game_states.playing:
             self.init_state_playing()
         elif target_state == self.game_states.gameover:
             self.init_state_gameover()
+
+    def init_state_menu(self):
+        self.gui.clear()
+        self.gui["main_menu"] = gui.Container(LEVEL_W // 2,
+                                              LEVEL_H // 2) \
+        .set_border_w(3) \
+        .set_border_color((160,160,160)) \
+        .set_color((200,200,200)) \
+        .set_corner_roundness(10) \
+        .set_padding((10,10,10,10)) \
+        .set_child_spacing(5) 
+        self.gui["main_menu"].add_child(gui.Text("pygame-tetris", FONT_ARIAL_55))
+        self.gui["main_menu"].add_child(gui.Button(gui.Text("Start Game", FONT_ARIAL)) \
+        .set_border_w(3) \
+        .set_border_color((0,0,0)) \
+        .set_color_deselected((100,100,100)) \
+        .set_color_selected((100,200,100)) \
+        .set_padding((5,10,5,10)) \
+        .set_on_click(self,self.change_state, [self.game_states.playing]))
+        self.gui["main_menu"].add_child(gui.Button(gui.Text("Quit", FONT_ARIAL)) \
+        .set_border_w(3) \
+        .set_border_color((0,0,0)) \
+        .set_color_deselected((100,100,100)) \
+        .set_color_selected((100,200,100)) \
+        .set_padding((5,10,5,10)) \
+        .set_on_click(self,self.set_quit, []))
 
     def init_state_playing(self):
         self.gui.clear()
@@ -265,6 +304,15 @@ class Game:
         self.game_state = self.game_states.playing
 
     def init_state_pause(self):
+        self.gui["pause_menu"] = gui.Container(LEVEL_W // 2, 
+                                               LEVEL_H // 2) \
+        .set_border_w(3) \
+        .set_border_color((160,160,160)) \
+        .set_color((200,200,200)) \
+        .set_corner_roundness(10) \
+        .set_padding((10,10,10,10)) \
+        .add_child(gui.Text("Game Paused", FONT_ARIAL_55)) 
+
         self.game_state = self.game_states.pause
 
     def init_state_gameover(self):
@@ -283,6 +331,9 @@ class Game:
 
     def get_level(self):
         return self.level
+
+    def set_quit(self):
+        self.quit = True
 
 def drawTet(screen, piece):
     for actual in (piece.getPiece())[piece.getRotIndex()]:
@@ -321,6 +372,7 @@ def main():
 
         draw_before_gui()
         for element in gui.values():
+            element.update()
             element.draw(screen)
         pygame.display.flip()
 
