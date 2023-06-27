@@ -75,6 +75,9 @@ class Element:
             self.actual_x = self.actual_x - self.w // 2
             self.actual_y = self.actual_y - self.h // 2
 
+    def input(self, event):
+        pass
+
     def draw(self, x_off=0, y_off=0):
         pass
 
@@ -208,6 +211,10 @@ class Container(BoxElement):
             self.children.insert(pos, element)
         element.set_parent(self)
         return self
+
+    def input(self, event):
+        for child in self.children:
+            child.input(event)
 
     def draw(self, screen, x_off=0, y_off=0):
         super().draw(screen, x_off, y_off)
@@ -356,7 +363,43 @@ class Button(BoxElement):
         self.on_click_fun_args = args
         return self
 
+#WIP
+class TextInput(BoxElement):
+    input_text = False
+    on_action_fun = lambda self : print("unassigned action")
+    on_action_fun_args = []
+    
+    def __init__(self, input_text, x=0, y=0):
+        super().__init__(x, y)
+        self.input_text = input_text
+        self.on_action_caller = self
 
+    def update(self):
+        super().update()
+        self.w = self.input_text.get_w()
+        self.h = self.input_text.get_h()
+    
+    def draw(self, screen, x_off=0, y_off=0):
+        super().draw(screen, x_off, y_off)
+        self.input_text.draw(screen)
 
+    def input(self, event):
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_BACKSPACE:
+                self.input_text.set_content(self.input_text.get_content()[:-1])
+            elif event.key == pygame.K_RETURN:
+                self.on_action()
+            else:
+                self.input_text.set_content(self.input_text.get_content() + event.unicode)
+
+    def on_action(true_self):
+        self = true_self.on_action_caller
+        return true_self.on_action_fun(*(true_self.on_action_fun_args))
+
+    def set_on_action(self,caller,fun,args):
+        self.on_action_fun = fun
+        self.on_action_caller = caller
+        self.on_action_fun_args = args
+        return self
 
 

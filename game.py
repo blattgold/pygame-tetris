@@ -277,6 +277,9 @@ class Game:
         events = pygame.event.get()
 
         for event in events:
+            for element in self.gui.values():
+                element.input(event)
+
             if event.type == pygame.QUIT:
                 self.quit = True
 
@@ -316,6 +319,7 @@ class Game:
         .set_on_click(self,self.init_state_playing, []))
         self.gui["main_menu"].add_child(gui.Button(gui.Text("Quit", FONT_ARIAL)) \
         .set_on_click(self,self.set_quit, []))
+        self.gui["main_menu"].add_child(gui.TextInput(gui.Text("", FONT_ARIAL)))
 
     def init_state_playing(self):
         self.gui.clear()
