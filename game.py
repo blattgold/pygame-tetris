@@ -12,6 +12,7 @@ LEVEL_W = GRID_SIZE * 10
 LEVEL_H = GRID_SIZE * 20
 
 pygame.font.init()
+FONT_ARIAL_25 = pygame.font.Font(os.path.join("assets", "fonts", "Arialn.ttf"), 25)
 FONT_ARIAL = pygame.font.Font(os.path.join("assets", "fonts", "Arialn.ttf"), 40)
 FONT_ARIAL_55 = pygame.font.Font(os.path.join("assets", "fonts", "Arialn.ttf"), 55)
 
@@ -197,9 +198,58 @@ class Level:
     def check_game_over(self):
         return any(map(lambda x: x != 0, self.map[0]))
 
+class FileHandler():
+    path = ""
+    data = [] # list contains tuples containing (name (str), score (int))
+
+    def __init__(self, path="scores"):
+        self.path = path + ".txt"
+        self.data = []
+        self.parse_file_data()
+
+    def add_score_to_data(self, name, score):
+        self.data.append((name, score))
+        return self
+
+    def get_data(self):
+        return self.data.copy()
+
+    def parse_file_data(self):
+        '''
+        check if file exists, if it does, parse data from file
+        and save as tuples in data member variable
+        '''
+        if os.path.exists(self.path):
+            file = open(self.path, "r")
+            for line in file:
+                parsed = line.split(':', 1)
+                name = parsed[0]
+                score = parsed[1].strip('\n')
+                if not score.isnumeric():
+                    score = 0
+                self.data.append((name, int(score))) 
+                print(f"added '{name}: {score}' from file to data")
+
+    def write_data_to_file(self):
+        '''
+        open file and erase all data in it.
+        then write on each line "name:score"
+        '''
+        file = open(self.path, "a")
+        file.truncate(0)
+        print("file has been cleared")
+
+        for element in self.data:
+            file.write(f"{element[0]}:{element[1]}\n")
+            print(f"written '{element[0]}:{element[1]}' to file")
+        file.close()
+        return self
+            
+
 class Game:
     game_states = Enum("game_states", ["menu", "pause", "playing", "gameover"])
     game_state = game_states.menu
+    file_handler = FileHandler()
     score = 0
     level = False
     gui = []
@@ -217,7 +267,7 @@ class Game:
         elif self.game_state == self.game_states.playing:
             self.level.update()
             if self.level.check_game_over():
-                self.change_state(self.game_states.gameover)
+                self.init_state_gameover()
 
         self.handle_input()
 
@@ -260,27 +310,11 @@ class Game:
     def init_state_menu(self):
         self.gui.clear()
         self.gui["main_menu"] = gui.Container(LEVEL_W // 2,
-                                              LEVEL_H // 2) \
-        .set_border_w(3) \
-        .set_border_color((160,160,160)) \
-        .set_color((200,200,200)) \
-        .set_corner_roundness(10) \
-        .set_padding((10,10,10,10)) \
-        .set_child_spacing(5) 
+                                              LEVEL_H // 2)
         self.gui["main_menu"].add_child(gui.Text("pygame-tetris", FONT_ARIAL_55))
         self.gui["main_menu"].add_child(gui.Button(gui.Text("Start Game", FONT_ARIAL)) \
-        .set_border_w(3) \
-        .set_border_color((0,0,0)) \
-        .set_color_deselected((100,100,100)) \
-        .set_color_selected((100,200,100)) \
-        .set_padding((5,10,5,10)) \
         .set_on_click(self,self.init_state_playing, []))
         self.gui["main_menu"].add_child(gui.Button(gui.Text("Quit", FONT_ARIAL)) \
-        .set_border_w(3) \
-        .set_border_color((0,0,0)) \
-        .set_color_deselected((100,100,100)) \
-        .set_color_selected((100,200,100)) \
-        .set_padding((5,10,5,10)) \
         .set_on_click(self,self.set_quit, []))
 
     def init_state_playing(self):
@@ -296,19 +330,19 @@ class Game:
     def init_state_pause(self):
         self.gui["pause_menu"] = gui.Container(LEVEL_W // 2, 
                                                LEVEL_H // 2) \
-        .set_border_w(3) \
-        .set_border_color((160,160,160)) \
-        .set_color((200,200,200)) \
-        .set_corner_roundness(10) \
-        .set_padding((10,10,10,10)) \
-        .set_child_spacing(0) \
         .add_child(gui.Text("Game Paused", FONT_ARIAL_55)) \
-        .add_child(gui.Text("Test", FONT_ARIAL))
+        .add_child(gui.Text("High Scores", FONT_ARIAL))
+
+        scores = self.file_handler.get_data()
+
+        for score in scores:
+            self.gui["pause_menu"].add_child(gui.Text(f"{score[0]}: {score[1]}", FONT_ARIAL_25))
 
         self.game_state = self.game_states.pause
 
     def init_state_gameover(self):
         self.gui.clear()
+        self.file_handler.write_data_to_file()
 
         self.game_state = self.game_states.gameover
         self.level = False
@@ -326,6 +360,7 @@ class Game:
 
     def set_quit(self):
         self.quit = True
+
 
 def drawTet(screen, piece):
     for actual in (piece.getPiece())[piece.getRotIndex()]:

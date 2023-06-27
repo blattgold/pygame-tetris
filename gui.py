@@ -9,14 +9,20 @@ class Element:
     w = 1
     h = 1
     parent = False # False = top level, no parent
-    center_origin = False
     color = (0,0,0)
     invisible = False
     selectable = False
+    center_origin = False
+    debug = False
 
-    def __init__(self, x=0, y=0):
+    def __init__(self, x=0, y=0, center_origin=False):
         self.x = x
         self.y = y
+        self.center_origin = center_origin
+
+    def set_debug(self):
+        self.debug = True
+        return self
 
     def get_x(self):
         return self.x
@@ -82,8 +88,8 @@ class Text(Element):
     content = False
     font = False
 
-    def __init__(self, content, font, x=0, y=0):
-        super().__init__(x, y)
+    def __init__(self, content, font, x=0, y=0, center_origin=False):
+        super().__init__(x, y, center_origin)
         self.content = content
         self.font = font
         self.w = int(self.font.render(self.content, True, (0,0,0)).get_width())
@@ -119,8 +125,8 @@ class BoxElement(Element):
     corner_roundness = 0
     padding = (0,0,0,0)
 
-    def __init__(self, x=0, y=0):
-        super().__init__(x,y)
+    def __init__(self, x=0, y=0, center_origin=False):
+        super().__init__(x,y,center_origin)
         self.border_w = 0
         self.border_color = (0,0,0)
         self.corner_roundness = 0
@@ -169,12 +175,20 @@ class BoxElement(Element):
 class Container(BoxElement):
     children = []
     child_spacing = 0
-    center_origin = True
 
-    def __init__(self, x=0, y=0):
-        super().__init__(x,y)
+    def __init__(self, x=0, y=0, center_origin=True):
+        super().__init__(x,y,center_origin)
         self.children = []
         self.align_mode = self.align_modes.center
+        self.default_style()
+
+    def default_style(self):
+        self.set_border_w(3) \
+        .set_border_color((160,160,160)) \
+        .set_color((200,200,200)) \
+        .set_corner_roundness(10) \
+        .set_padding((10,10,10,10)) \
+        .set_child_spacing(5) 
 
     def set_child_spacing(self, spacing):
         self.child_spacing = spacing
@@ -202,8 +216,6 @@ class Container(BoxElement):
             child.draw(screen, x_off, y_off)
 
     def update(self):
-        super().update()
-
         self.h = 0
         self.w = 0
 
@@ -237,10 +249,9 @@ class Container(BoxElement):
 
             prev_children_h += child.get_h()
 
+        super().update()
         self.h += self.padding[0] + self.padding[2]
         self.w += self.padding[1] + self.padding[3]
-
-
 
 
     def update_selected(self, d):
@@ -282,13 +293,21 @@ class Button(BoxElement):
     on_click_fun = lambda self : print("unassigned button action")
     on_click_fun_args = []
 
-    def __init__(self, label, x=0, y=0):
-        super().__init__(x,y)
+    def __init__(self, label, x=0, y=0, center_origin=False):
+        super().__init__(x,y,center_origin)
         self.selectable = True
         self.align_mode = self.align_modes.left
         self.child_label = label
         self.on_click_caller = self
         label.set_parent(self)
+        self.default_style()
+
+    def default_style(self):
+        self.set_border_w(3) \
+        .set_border_color((0,0,0)) \
+        .set_color_deselected((100,100,100)) \
+        .set_color_selected((100,200,100)) \
+        .set_padding((5,10,5,10))
 
     def set_selected(self, selected):
         self.selected = selected
