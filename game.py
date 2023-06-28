@@ -164,7 +164,6 @@ class Level:
         for pr in self.tet.getPiece()[self.tet.getRotIndex()]:
             self.map[self.tet.get_y() // GRID_SIZE + pr[1]][self.tet.get_x() // GRID_SIZE + pr[0]] = self.tet.get_color()
         self.clear_lines()
-        self.game.update_score(1)
         self.tet = Tet(self, LEVEL_W // 2, 0, all_pieces[random.randint(0,6)])
 
     def occupied(self, x_off=0, y_off=0):
@@ -189,7 +188,7 @@ class Level:
                     self.map[row_index][element_index] = 0
                 self.push_lines(row_index)
                 lines_cleared += 1
-        self.game.update_score(10 * lines_cleared)
+        self.game.update_score(self.game.get_score_rewards()[lines_cleared])
 
     def push_lines(self, row_index):
         del self.map[row_index]
@@ -208,7 +207,15 @@ class FileHandler():
         self.parse_file_data()
 
     def add_score_to_data(self, name, score):
-        self.data.append((name, score))
+        '''
+        assumes data to be sorted
+        inserts score at sorted position
+        '''
+        for index, element in enumerate(self.data):
+            if element[1] <= score:
+                self.data.insert(index, (name, score))
+                break
+
         return self
 
     def get_data(self):
@@ -222,6 +229,8 @@ class FileHandler():
         if os.path.exists(self.path):
             file = open(self.path, "r")
             for line in file:
+                if line[0] == "#":
+                    continue
                 parsed = line.split(':', 1)
                 name = parsed[0]
                 score = parsed[1].strip('\n')
@@ -239,6 +248,8 @@ class FileHandler():
         file.truncate(0)
         print("file has been cleared")
 
+        file.write("# this file is assumed to be sorted from highest to lowest.\n")
+
         for element in self.data:
             file.write(f"{element[0]}:{element[1]}\n")
             print(f"written '{element[0]}:{element[1]}' to file")
@@ -251,6 +262,7 @@ class Game:
     game_state = game_states.menu
     file_handler = FileHandler()
     score = 0
+    score_rewards = (1, 5, 15, 30, 60) # reward for: placed block, 1 line cleared, 2 lines cleared... 4 lines cleared
     level = False
     gui = []
     quit = False
@@ -277,12 +289,16 @@ class Game:
         events = pygame.event.get()
 
         for event in events:
-            for element in self.gui.values():
-                element.input(event)
-
             if event.type == pygame.QUIT:
                 self.quit = True
-
+            '''
+            GUI Input
+            '''
+            for element in self.gui.values():
+                element.input(event)
+            '''
+            Gameplay Input
+            '''
             if self.game_state == self.game_states.playing:
                 tet = self.level.get_tet()
                 if event.type == pygame.KEYDOWN:
@@ -300,28 +316,25 @@ class Game:
                     if event.key == pygame.K_ESCAPE:
                         self.init_state_playing()
 
-            elif self.game_state == self.game_states.menu:
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_w:
-                        self.gui["main_menu"].update_selected(-1)
-                    if event.key == pygame.K_s:
-                        self.gui["main_menu"].update_selected(1)
-                    if event.key == pygame.K_SPACE:
-                        if self.gui["main_menu"].get_selected() != False:
-                            self.gui["main_menu"].get_selected()[1].on_click()
-
     def init_state_menu(self):
+        '''
+        Main Menu
+        '''
         self.gui.clear()
         self.gui["main_menu"] = gui.Container(LEVEL_W // 2,
                                               LEVEL_H // 2)
         self.gui["main_menu"].add_child(gui.Text("pygame-tetris", FONT_ARIAL_55))
         self.gui["main_menu"].add_child(gui.Button(gui.Text("Start Game", FONT_ARIAL)) \
         .set_on_click(self,self.init_state_playing, []))
+        self.gui["main_menu"].add_child(gui.Button(gui.Text("High Scores", FONT_ARIAL)) \
+        .set_on_click(self,self.init_state_score, []))
         self.gui["main_menu"].add_child(gui.Button(gui.Text("Quit", FONT_ARIAL)) \
         .set_on_click(self,self.set_quit, []))
-        self.gui["main_menu"].add_child(gui.TextInput(gui.Text("", FONT_ARIAL)))
 
     def init_state_playing(self):
+        '''
+        Playing
+        '''
         self.gui.clear()
 
         if self.level == False:
@@ -332,25 +345,67 @@ class Game:
         self.game_state = self.game_states.playing
 
     def init_state_pause(self):
+        '''
+        Pause Menu
+        '''
         self.gui["pause_menu"] = gui.Container(LEVEL_W // 2, 
                                                LEVEL_H // 2) \
         .add_child(gui.Text("Game Paused", FONT_ARIAL_55)) \
-        .add_child(gui.Text("High Scores", FONT_ARIAL))
-
-        scores = self.file_handler.get_data()
-
-        for score in scores:
-            self.gui["pause_menu"].add_child(gui.Text(f"{score[0]}: {score[1]}", FONT_ARIAL_25))
+        .add_child(gui.Text("Rewards", FONT_ARIAL)) \
+        .add_child(gui.Text("---------------", FONT_ARIAL)) \
+        .add_child(gui.Text(f"block placed: {self.score_rewards[0]}", FONT_ARIAL)) \
+        .add_child(gui.Text(f"1 line cleared: {self.score_rewards[1]}", FONT_ARIAL)) \
+        .add_child(gui.Text(f"2 lines cleared: {self.score_rewards[2]}", FONT_ARIAL)) \
+        .add_child(gui.Text(f"3 lines cleared: {self.score_rewards[3]}", FONT_ARIAL)) \
+        .add_child(gui.Text(f"4 lines cleared: {self.score_rewards[4]}", FONT_ARIAL)) \
 
         self.game_state = self.game_states.pause
 
     def init_state_gameover(self):
+        '''
+        Game Over Screen
+        '''
         self.gui.clear()
-        self.file_handler.write_data_to_file()
 
-        self.game_state = self.game_states.gameover
+        self.gui["gameover_enter"] = gui.Container(LEVEL_W // 2,
+                                                   LEVEL_H // 2) \
+        .add_child(gui.Text("Game Over", FONT_ARIAL_55)) \
+        .add_child(gui.Text(f"score: {self.score}", FONT_ARIAL)) \
+        .add_child(gui.Text("Please enter your name", FONT_ARIAL)) \
+        .add_child(gui.TextInput(gui.Text("", FONT_ARIAL)) \
+                   .set_on_action(self, 
+                                  self.init_state_score, 
+                                  [self.score]))
+
         self.level = False
         self.score = 0
+        self.game_state = self.game_states.gameover
+
+    def init_state_score(self, score=0):
+        '''
+        View score and add score if game over
+        '''
+        if "gameover_enter" in self.gui.keys():
+            self.file_handler.add_score_to_data(self.gui["gameover_enter"].get_child(3).get_input_text().get_content(),
+                                                score)
+        self.file_handler.write_data_to_file()
+
+        self.gui.clear()
+
+
+        self.gui["score_screen"] = gui.Container(LEVEL_W // 2,
+                                                 LEVEL_H // 2) \
+        .add_child(gui.Text("High Scores", FONT_ARIAL_55)) \
+        .add_child(gui.Text("-------------", FONT_ARIAL_55)) \
+
+        for index, score in enumerate(self.file_handler.get_data()):
+            if index > 10:
+                break
+            self.gui["score_screen"] \
+            .add_child(gui.Text(f"{score[0]}: {score[1]}", FONT_ARIAL))
+        self.gui["score_screen"].add_child(gui.Button(gui.Text("Back to Title", FONT_ARIAL)).set_on_click(self, self.init_state_menu, [])) \
+
+
 
     def update_score_gui(self):
         self.gui["score_gui"] = gui.Text("Score: " + str(self.score), FONT_ARIAL)
@@ -364,6 +419,9 @@ class Game:
 
     def set_quit(self):
         self.quit = True
+
+    def get_score_rewards(self):
+        return self.score_rewards
 
 
 def drawTet(screen, piece):

@@ -1,5 +1,7 @@
 from enum import Enum
 import pygame
+import copy
+import string
 
 class Element:
     x = 0
@@ -95,8 +97,6 @@ class Text(Element):
         super().__init__(x, y, center_origin)
         self.content = content
         self.font = font
-        self.w = int(self.font.render(self.content, True, (0,0,0)).get_width())
-        self.h = int(self.font.render(self.content, True, (0,0,0)).get_height())
 
     def draw(self, screen, x_off=0, y_off=0):
         text = self.font.render(self.content, True, self.color)
@@ -105,6 +105,8 @@ class Text(Element):
     
     def update(self):
         super().update()
+        self.w = int(self.font.render(self.content, True, (0,0,0)).get_width())
+        self.h = int(self.font.render(self.content, True, (0,0,0)).get_height())
 
     def set_content(self, content):
         self.content = content
@@ -197,6 +199,9 @@ class Container(BoxElement):
         self.child_spacing = spacing
         return self
 
+    def get_child(self, index):
+        return self.children[index]
+
     def add_child(self, element):
         self.children.append(element)
         element.set_parent(self)
@@ -213,6 +218,15 @@ class Container(BoxElement):
         return self
 
     def input(self, event):
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_w:
+                self.update_selected(-1)
+            if event.key == pygame.K_s:
+                self.update_selected(1)
+            if event.key == pygame.K_RETURN:
+                if self.get_selected() != False:
+                    self.get_selected()[1].on_click()
+
         for child in self.children:
             child.input(event)
 
@@ -223,15 +237,27 @@ class Container(BoxElement):
             child.draw(screen, x_off, y_off)
 
     def update(self):
+        super().update()
+
         self.h = 0
         self.w = 0
 
-        highest_child_w = 0
-        prev_children_h = 0
 
+        '''
+        set width to highest child width
+        '''
+        for child in self.children:
+            if child.get_w() > self.w:
+                self.w = child.get_w()
+        '''
+        update all children
+        '''
         for child in self.children:
             child.update()
-
+        '''
+        add up height of all children + spacing
+        '''
+        prev_children_h = 0
         for child_index, child in enumerate(self.children):
             self.h += child.get_h()
 
@@ -239,11 +265,6 @@ class Container(BoxElement):
                 self.h += self.child_spacing
 
             prev_children_h += self.child_spacing
-
-
-            if highest_child_w < child.get_w():
-                highest_child_w = child.get_w()
-                self.w = child.get_w()
 
             if self.align_mode == self.align_modes.left:
                 child.set_actual_x(child.get_actual_x() + self.padding[3])
@@ -256,15 +277,16 @@ class Container(BoxElement):
 
             prev_children_h += child.get_h()
 
-        super().update()
         self.h += self.padding[0] + self.padding[2]
         self.w += self.padding[1] + self.padding[3]
+
+
 
 
     def update_selected(self, d):
         selectable = self.find_selectable()
         if selectable != False:
-            if len(selectable) > 1:
+            if len(selectable) >= 1:
                 current = self.get_selected(selectable)
                 if current != False:
                     if current[0] + d < len(selectable) and current[0] + d >= 0:
@@ -283,9 +305,11 @@ class Container(BoxElement):
         else:
             return selectable
 
-    def get_selected(self, selectable=False):
-        if selectable == False:
+    def get_selected(self, selectable=None):
+        if selectable == None:
             selectable = self.find_selectable()
+        if selectable == False:
+            return False
         for s_index, s in enumerate(selectable):
             if s.get_selected():
                 return (s_index, s)
@@ -368,29 +392,57 @@ class TextInput(BoxElement):
     input_text = False
     on_action_fun = lambda self : print("unassigned action")
     on_action_fun_args = []
+    max_length = 0
     
-    def __init__(self, input_text, x=0, y=0):
-        super().__init__(x, y)
-        self.input_text = input_text
+    def __init__(self, input_text, max_length=20, x=0, y=0, center_origin=False):
+        super().__init__(x, y, center_origin)
+        self.input_text = input_text.set_content(input_text.get_content() + "_")
+        input_text.set_parent(self)
         self.on_action_caller = self
+        self.default_style()
+        self.max_length = max_length
+
+    def default_style(self):
+        self.set_border_w(0) \
+        .set_corner_roundness(10) \
+        .set_padding((2,5,2,5)) \
+        .set_border_color((0,0,0)) \
+        .set_color((180,180,255))
 
     def update(self):
-        super().update()
+        self.input_text.update()
+        self.input_text.set_actual_x(self.input_text.get_actual_x() + self.padding[3])
+        self.input_text.set_actual_y(self.input_text.get_actual_y() + self.padding[0])
+
         self.w = self.input_text.get_w()
         self.h = self.input_text.get_h()
+
+        self.w += self.padding[1] + self.padding[3]
+        self.h += self.padding[0] + self.padding[2]
+        
+        super().update()
     
     def draw(self, screen, x_off=0, y_off=0):
         super().draw(screen, x_off, y_off)
         self.input_text.draw(screen)
 
+    def get_input_text(self):
+        cp = copy.copy(self.input_text)
+        return cp.set_content(cp.get_content()[:-1])
+
+    def get_len(self):
+        return len(self.input_text) - 1
+
     def input(self, event):
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_BACKSPACE:
-                self.input_text.set_content(self.input_text.get_content()[:-1])
+                if len(self.input_text.get_content()) > 1:
+                    self.input_text.set_content(self.input_text.get_content()[:-2] + "_")
             elif event.key == pygame.K_RETURN:
                 self.on_action()
-            else:
-                self.input_text.set_content(self.input_text.get_content() + event.unicode)
+            elif len(self.input_text.get_content()) < self.max_length - 1:
+                self.input_text.set_content(self.input_text.get_content()[:-1])
+                self.input_text.set_content(self.input_text.get_content() + event.unicode + "_")
 
     def on_action(true_self):
         self = true_self.on_action_caller
