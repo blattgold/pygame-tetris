@@ -387,7 +387,6 @@ class Button(BoxElement):
         self.on_click_fun_args = args
         return self
 
-#WIP
 class TextInput(BoxElement):
     input_text = False
     on_action_fun = lambda self : print("unassigned action")
