@@ -38,7 +38,7 @@ BLOCK_IMGS = [False,
 KEYBINDS = {"MOVE_L": pygame.K_a,
             "MOVE_R": pygame.K_d,
             "ROTATE": pygame.K_SPACE,
-            "QUICK_FALL": pygame.K_s,
+            "DROP": pygame.K_s,
             "PAUSE": pygame.K_ESCAPE,
             "GUI_UP": pygame.K_w,
             "GUI_DOWN": pygame.K_s,
@@ -67,11 +67,13 @@ class Tet:
     y = 0
     piece_w_rot = 0
     rot_index = 0
-    ticks_per_frame = 3
+    tpf = 3 # (ticks per frame) how many ticks until update per frame
+    dropping_tpf = tpf*10 # how many ticks until update per frame if drop key is held
     current_tick = 0
     move_on_tick = 100 # block moves down on move_on_tick.
     level = 0
     color = 1
+    dropping = False
 
     def __init__(self
                  ,level
@@ -82,17 +84,20 @@ class Tet:
         self.piece_w_rot = piece.copy()
         self.x = x
         self.y = y
-        self.ticks_per_frame = tpf
+        self.tpf = tpf
         self.level = level
         self.color = random.randint(1,7)
-    # increases current_tick by ticks_per_frame on each call.
+    # increases current_tick by tpf on each call.
     # returns True if current_tick reached move_on_tick and sets current_tick to 0. Otherwise False
     def tick(self):
         if self.current_tick >= self.move_on_tick:
             self.current_tick = 0
             return True
+        elif self.dropping:
+            self.current_tick += self.dropping_tpf 
+            return False
         else:
-            self.current_tick += self.ticks_per_frame
+            self.current_tick += self.tpf
             return False
 
     def update(self):
@@ -149,6 +154,9 @@ class Tet:
 
     def get_color(self):
         return self.color
+
+    def set_dropping(self, drop):
+        self.dropping = drop
 
 class Level:
     map = [[0 for i in range(10)] for j in range(20)]
@@ -278,12 +286,12 @@ class Game:
     score = 0
     score_rewards = (1, 5, 15, 30, 60) # reward for: placed block, 1 line cleared, 2 lines cleared... 4 lines cleared
     level = False
-    gui = []
     quit = False
 
     def __init__(self, gui):
         self.gui = gui
         self.init_state_menu()
+        self.held_keys = []
 
     def loop(self):
         if self.game_state == self.game_states.menu:
@@ -318,6 +326,9 @@ class Game:
             '''
             if self.game_state == self.game_states.playing:
                 tet = self.level.get_tet()
+                '''
+                if key is pressed
+                '''
                 if event.type == pygame.KEYDOWN:
                     if event.key == KEYBINDS["ROTATE"]:
                         tet.try_rotate()
@@ -327,6 +338,18 @@ class Game:
                         tet.move_r()
                     if event.key == KEYBINDS["PAUSE"]:
                         self.init_state_pause()
+                    if event.key == KEYBINDS["DROP"]:
+                        if KEYBINDS["DROP"] not in self.held_keys:
+                            self.level.get_tet().set_dropping(True)
+                            self.held_keys.append(KEYBINDS["DROP"])
+                '''
+                if key has been released
+                '''
+                if event.type == pygame.KEYUP:
+                    if event.key == KEYBINDS["DROP"]:
+                        if KEYBINDS["DROP"] in self.held_keys:
+                            self.level.get_tet().set_dropping(False)
+                            self.held_keys.remove(KEYBINDS["DROP"])
 
             elif self.game_state == self.game_states.pause:
                 if event.type == pygame.KEYDOWN:
