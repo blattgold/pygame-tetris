@@ -77,7 +77,7 @@ class Element:
             self.actual_x = self.actual_x - self.w // 2
             self.actual_y = self.actual_y - self.h // 2
 
-    def input(self, event):
+    def input(self, event, key_gui_up=pygame.K_w, key_gui_down=pygame.K_s, key_gui_action=pygame.K_RETURN):
         pass
 
     def draw(self, x_off=0, y_off=0):
@@ -217,13 +217,13 @@ class Container(BoxElement):
         element.set_parent(self)
         return self
 
-    def input(self, event):
+    def input(self, event, key_gui_up=pygame.K_w, key_gui_down=pygame.K_s, key_gui_action=pygame.K_RETURN):
         if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_w:
+            if event.key == key_gui_up:
                 self.update_selected(-1)
-            if event.key == pygame.K_s:
+            if event.key == key_gui_down:
                 self.update_selected(1)
-            if event.key == pygame.K_RETURN:
+            if event.key == key_gui_action:
                 if self.get_selected() != False:
                     self.get_selected()[1].on_click()
 
@@ -432,12 +432,12 @@ class TextInput(BoxElement):
     def get_len(self):
         return len(self.input_text) - 1
 
-    def input(self, event):
+    def input(self, event, key_gui_up=pygame.K_w, key_gui_down=pygame.K_s, key_gui_action=pygame.K_RETURN):
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_BACKSPACE:
                 if len(self.input_text.get_content()) > 1:
                     self.input_text.set_content(self.input_text.get_content()[:-2] + "_")
-            elif event.key == pygame.K_RETURN:
+            elif event.key == key_gui_action:
                 self.on_action()
             elif len(self.input_text.get_content()) < self.max_length - 1:
                 self.input_text.set_content(self.input_text.get_content()[:-1])

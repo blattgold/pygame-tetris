@@ -35,6 +35,15 @@ BLOCK_IMGS = [False,
               IMG_BLOCK_RED,
               IMG_BLOCK_YELLOW]
 
+KEYBINDS = {"MOVE_L": pygame.K_a,
+            "MOVE_R": pygame.K_d,
+            "ROTATE": pygame.K_SPACE,
+            "QUICK_FALL": pygame.K_s,
+            "PAUSE": pygame.K_ESCAPE,
+            "GUI_UP": pygame.K_w,
+            "GUI_DOWN": pygame.K_s,
+            "GUI_ACTION": pygame.K_RETURN}
+
 def get_rotations(piece):
     result = [piece]
     result.append(list (map(lambda x: (-x[1], x[0]),piece)))
@@ -300,25 +309,28 @@ class Game:
             GUI Input
             '''
             for element in self.gui.values():
-                element.input(event)
+                element.input(event=event, 
+                              key_gui_up=KEYBINDS["GUI_UP"],
+                              key_gui_down=KEYBINDS["GUI_DOWN"],
+                              key_gui_action=KEYBINDS["GUI_ACTION"])
             '''
             Gameplay Input
             '''
             if self.game_state == self.game_states.playing:
                 tet = self.level.get_tet()
                 if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_SPACE:
+                    if event.key == KEYBINDS["ROTATE"]:
                         tet.try_rotate()
-                    if event.key == pygame.K_a:
+                    if event.key == KEYBINDS["MOVE_L"]:
                         tet.move_l()
-                    elif event.key == pygame.K_d:
+                    elif event.key == KEYBINDS["MOVE_R"]:
                         tet.move_r()
-                    if event.key == pygame.K_ESCAPE:
+                    if event.key == KEYBINDS["PAUSE"]:
                         self.init_state_pause()
 
             elif self.game_state == self.game_states.pause:
                 if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_ESCAPE:
+                    if event.key == KEYBINDS["PAUSE"]:
                         self.init_state_playing()
 
     def init_state_menu(self):
@@ -393,7 +405,7 @@ class Game:
         if "gameover_enter" in self.gui.keys():
             self.file_handler.add_score_to_data(self.gui["gameover_enter"].get_child(3).get_input_text().get_content(),
                                                 score)
-        self.file_handler.write_data_to_file()
+            self.file_handler.write_data_to_file()
 
         self.gui.clear()
 
