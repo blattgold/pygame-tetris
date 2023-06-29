@@ -46,11 +46,13 @@ KEYBINDS = {"MOVE_L": pygame.K_a,
             "GUI_DOWN": pygame.K_s,
             "GUI_ACTION": pygame.K_RETURN}
 
-SFX = {"DROP": pygame.mixer.Sound(os.path.join("assets", "sfx", "drop.wav")),
+SFX = {"DROP":   pygame.mixer.Sound(os.path.join("assets", "sfx", "drop.wav")),
        "CLEAR1": pygame.mixer.Sound(os.path.join("assets", "sfx", "clear1.wav")),
        "CLEAR2": pygame.mixer.Sound(os.path.join("assets", "sfx", "clear2.wav")),
        "CLEAR3": pygame.mixer.Sound(os.path.join("assets", "sfx", "clear3.wav")),
        "CLEAR4": pygame.mixer.Sound(os.path.join("assets", "sfx", "clear4.wav"))}
+
+MUSIC = {"TETRIS": os.path.join("assets", "music", "tetris.ogg")}
 
 def get_rotations(piece):
     result = [piece]
@@ -87,8 +89,8 @@ class Tet:
         self.dropping = False
         self.rot_index = 0
         self.tpf = tpf
-        self.tpf_adjusted = tpf * self.level.get_difficulty()
-        self.dropping_tpf = tpf * self.level.get_difficulty() * 10 # how many ticks until update per frame if drop key is held
+        self.tpf_adjusted = self.tpf * self.level.get_difficulty() // 1.4
+        self.dropping_tpf = self.tpf_adjusted * 10 # how many ticks until update per frame if drop key is held
         self.current_tick = 0
         self.move_on_tick = 100 # block moves down on move_on_tick.
 
@@ -171,7 +173,6 @@ class Tet:
 class Level:
     map = [[0 for i in range(10)] for j in range(20)]
     tet = 0
-    game = False
 
     def __init__(self, game):
         self.map = [[0 for i in range(10)] for j in range(20)]
@@ -179,6 +180,7 @@ class Level:
         self.difficulty = 1 # increases over time
         self.difficulty_stage = 0 # current stage until difficulty increase
         self.difficulty_increase_on_stage = 20 # difficulty increases upon reaching this number
+        self.max_difficulty = 20
         self.score_rewards = (1   * self.difficulty, 
                               100 * self.difficulty,
                               300 * self.difficulty, 
@@ -198,12 +200,25 @@ class Level:
     def set_difficulty(self, difficulty):
         self.difficulty = difficulty
 
+    def get_score_rewards(self):
+        return self.score_rewards
+
     def update(self):
+        if self.difficulty_stage >= self.difficulty_increase_on_stage and not self.difficulty >= self.max_difficulty:
+            self.difficulty += 1
+            self.difficulty_stage = 0
+            self.score_rewards = (1   * self.difficulty, 
+                                  100 * self.difficulty,
+                                  300 * self.difficulty, 
+                                  500 * self.difficulty, 
+                                  800 * self.difficulty)
+
         self.tet.update()
 
     def assimilate(self):
         for pr in self.tet.getPiece()[self.tet.getRotIndex()]:
             self.map[self.tet.get_y() // GRID_SIZE + pr[1]][self.tet.get_x() // GRID_SIZE + pr[0]] = self.tet.get_color()
+
         self.clear_lines()
         self.tet = Tet(self, LEVEL_W // 2, 0, all_pieces[random.randint(0,6)])
 
@@ -211,10 +226,16 @@ class Level:
         for pr in self.tet.getPiece()[self.tet.getRotIndex()]:
             y = self.tet.get_y() // GRID_SIZE + pr[1] + y_off
             x = self.tet.get_x() // GRID_SIZE + pr[0] + x_off
+
+            if y < 0 and x < 10 and x >= 0:
+                return False
+
             if y >= 20 or x >= 10 or x < 0:
                 return True
+
             if self.map[y][x] != 0:
                 return True
+
         return False
 
     def clear_lines(self):
@@ -224,9 +245,11 @@ class Level:
             for element in row:
                 if element == 0:
                     filled = False
+
             if filled:
                 for element_index, element in enumerate(self.map[row_index]):
                     self.map[row_index][element_index] = 0
+
                 self.push_lines(row_index)
                 lines_cleared += 1
 
@@ -340,6 +363,8 @@ class Game:
                 self.init_state_gameover()
 
         self.handle_input()
+        if self.level != False:
+            self.update_difficulty_gui()
 
         return self.quit
 
@@ -352,7 +377,7 @@ class Game:
             '''
             GUI Input
             '''
-            for element in self.gui.values():
+            for element in self.gui.copy().values():
                 element.input(event=event, 
                               key_gui_up=KEYBINDS["GUI_UP"],
                               key_gui_down=KEYBINDS["GUI_DOWN"],
@@ -411,12 +436,17 @@ class Game:
         '''
         Playing
         '''
+        pygame.mixer.music.load(MUSIC["TETRIS"])
+        pygame.mixer.music.play(-1)
+        pygame.mixer.music.set_volume(0.4)
+
         self.gui.clear()
 
         if self.level == False:
             self.level = Level(self)
 
         self.update_score_gui()
+        self.update_difficulty_gui()
 
         self.game_state = self.game_states.playing
 
@@ -429,11 +459,11 @@ class Game:
         .add_child(gui.Text("Game Paused", FONT_ARIAL_55)) \
         .add_child(gui.Text("Rewards", FONT_ARIAL)) \
         .add_child(gui.Text("---------------", FONT_ARIAL)) \
-        .add_child(gui.Text(f"block placed: {self.score_rewards[0]}", FONT_ARIAL)) \
-        .add_child(gui.Text(f"1 line cleared: {self.score_rewards[1]}", FONT_ARIAL)) \
-        .add_child(gui.Text(f"2 lines cleared: {self.score_rewards[2]}", FONT_ARIAL)) \
-        .add_child(gui.Text(f"3 lines cleared: {self.score_rewards[3]}", FONT_ARIAL)) \
-        .add_child(gui.Text(f"4 lines cleared: {self.score_rewards[4]}", FONT_ARIAL)) \
+        .add_child(gui.Text(f"block placed: {self.level.get_score_rewards()[0]}", FONT_ARIAL)) \
+        .add_child(gui.Text(f"1 line cleared: {self.level.get_score_rewards()[1]}", FONT_ARIAL)) \
+        .add_child(gui.Text(f"2 lines cleared: {self.level.get_score_rewards()[2]}", FONT_ARIAL)) \
+        .add_child(gui.Text(f"3 lines cleared: {self.level.get_score_rewards()[3]}", FONT_ARIAL)) \
+        .add_child(gui.Text(f"4 lines cleared: {self.level.get_score_rewards()[4]}", FONT_ARIAL)) \
 
         self.game_state = self.game_states.pause
 
@@ -441,6 +471,8 @@ class Game:
         '''
         Game Over Screen
         '''
+        pygame.mixer.music.unload()
+
         self.gui.clear()
 
         self.gui["gameover_enter"] = gui.Container(LEVEL_W // 2,
@@ -481,10 +513,13 @@ class Game:
             .add_child(gui.Text(f"{score[0]}: {score[1]}", FONT_ARIAL))
         self.gui["score_screen"].add_child(gui.Button(gui.Text("Back to Title", FONT_ARIAL)).set_on_click(self, self.init_state_menu, [])) \
 
-
-
     def update_score_gui(self):
         self.gui["score_gui"] = gui.Text("Score: " + str(self.score), FONT_ARIAL)
+
+    def update_difficulty_gui(self):
+        self.gui["difficulty_gui"] = gui.Text("Difficulty: " + str(self.level.get_difficulty()), 
+                                              FONT_ARIAL, 
+                                              y = 40)
 
     def update_score(self, score):
         self.score += score
