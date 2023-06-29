@@ -211,10 +211,15 @@ class FileHandler():
         assumes data to be sorted
         inserts score at sorted position
         '''
+        added = False
         for index, element in enumerate(self.data):
             if element[1] <= score:
                 self.data.insert(index, (name, score))
+                added = True
                 break
+        
+        if not added:
+            self.data.append((name, score))
 
         return self
 
