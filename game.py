@@ -466,12 +466,9 @@ class Game:
 
 def drawTet(screen, piece):
     for actual in (piece.getPiece())[piece.getRotIndex()]:
-        pygame.draw.rect(screen, (100, 100, 0), pygame.Rect(piece.get_x() + actual[0] * GRID_SIZE,
-                                                            piece.get_y() + actual[1] * GRID_SIZE,
-                                                            GRID_SIZE,
-                                                            GRID_SIZE))
-        screen.blit(BLOCK_IMGS[piece.get_color()], (piece.get_x() + actual[0] * GRID_SIZE,
-                          piece.get_y() + actual[1] * GRID_SIZE))
+        screen.blit(BLOCK_IMGS[piece.get_color()], 
+                    (piece.get_x() + actual[0] * GRID_SIZE, 
+                     piece.get_y() + actual[1] * GRID_SIZE))
 
 def drawLevel(screen, level):
     for row_index, row  in enumerate(level.get_map()):
