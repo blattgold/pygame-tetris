@@ -16,6 +16,7 @@ class Element:
     selectable = False
     center_origin = False
     debug = False
+    first_update = True
 
     def __init__(self, x=0, y=0, center_origin=False):
         self.x = x
@@ -66,6 +67,10 @@ class Element:
         return self.selectable
 
     def update(self):
+        if self.first_update:
+            self.first_update = False
+            self.update()
+
         self.actual_x = self.x
         self.actual_y = self.y
 
@@ -242,6 +247,11 @@ class Container(BoxElement):
         self.h = 0
         self.w = 0
 
+        '''
+        update all children
+        '''
+        for child in self.children:
+            child.update()
 
         '''
         set width to highest child width
@@ -249,11 +259,6 @@ class Container(BoxElement):
         for child in self.children:
             if child.get_w() > self.w:
                 self.w = child.get_w()
-        '''
-        update all children
-        '''
-        for child in self.children:
-            child.update()
         '''
         add up height of all children + spacing
         '''
@@ -279,6 +284,7 @@ class Container(BoxElement):
 
         self.h += self.padding[0] + self.padding[2]
         self.w += self.padding[1] + self.padding[3]
+
 
 
 
