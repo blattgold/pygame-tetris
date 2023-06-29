@@ -71,16 +71,6 @@ all_pieces = [[[(0,0), (-1,0), (1,0), (-2,0)],
               get_rotations([(0,0), (0,-1), (1,0), (-1,0)])] # T
 
 class Tet:
-    x = LEVEL_W//2
-    y = 0
-    piece_w_rot = 0
-    rot_index = 0
-    tpf = 3 # (ticks per frame) how many ticks until update per frame
-    dropping_tpf = tpf*10 # how many ticks until update per frame if drop key is held
-    current_tick = 0
-    move_on_tick = 100 # block moves down on move_on_tick.
-    level = 0
-    color = 1
     dropping = False
 
     def __init__(self
@@ -88,16 +78,25 @@ class Tet:
                  ,x=LEVEL_W//2
                  ,y=0
                  ,piece=all_pieces[random.randint(0,6)]
-                 ,tpf=5):
+                 ,tpf=2):
         self.piece_w_rot = piece.copy()
         self.x = x
         self.y = y
-        self.tpf = tpf
         self.level = level
         self.color = random.randint(1,7)
-    # increases current_tick by tpf on each call.
-    # returns True if current_tick reached move_on_tick and sets current_tick to 0. Otherwise False
+        self.dropping = False
+        self.rot_index = 0
+        self.tpf = tpf
+        self.tpf_adjusted = tpf * self.level.get_difficulty()
+        self.dropping_tpf = tpf * self.level.get_difficulty() * 10 # how many ticks until update per frame if drop key is held
+        self.current_tick = 0
+        self.move_on_tick = 100 # block moves down on move_on_tick.
+
     def tick(self):
+        '''
+        increases current_tick by tpf on each call.
+        returns True if current_tick reached move_on_tick and sets current_tick to 0. Otherwise False
+        '''
         if self.current_tick >= self.move_on_tick:
             self.current_tick = 0
             return True
@@ -105,7 +104,7 @@ class Tet:
             self.current_tick += self.dropping_tpf 
             return False
         else:
-            self.current_tick += self.tpf
+            self.current_tick += self.tpf_adjusted
             return False
 
     def update(self):
@@ -128,9 +127,12 @@ class Tet:
             self.rot_index += 1
         else:
             self.rot_index = 0
-    # tries to rotate the piece, if doing so would cause it to occupy a space that is already occupied
-    # then it won't rotate
+
     def try_rotate(self):
+        '''
+        tries to rotate the piece, if doing so would cause it to occupy a space that is already occupied
+        then it won't rotate
+        '''
         before_rot = self.rot_index
         self.rotate()
         if self.level.occupied():
@@ -173,14 +175,28 @@ class Level:
 
     def __init__(self, game):
         self.map = [[0 for i in range(10)] for j in range(20)]
-        self.tet = Tet(self)
         self.game = game
+        self.difficulty = 1 # increases over time
+        self.difficulty_stage = 0 # current stage until difficulty increase
+        self.difficulty_increase_on_stage = 20 # difficulty increases upon reaching this number
+        self.score_rewards = (1   * self.difficulty, 
+                              100 * self.difficulty,
+                              300 * self.difficulty, 
+                              500 * self.difficulty, 
+                              800 * self.difficulty) # reward for: placed block, 1 line cleared, 2 lines cleared... 4 lines cleared
+        self.tet = Tet(self)
 
     def get_map(self):
         return self.map.copy()
 
     def get_tet(self):
         return self.tet
+
+    def get_difficulty(self):
+        return self.difficulty
+
+    def set_difficulty(self, difficulty):
+        self.difficulty = difficulty
 
     def update(self):
         self.tet.update()
@@ -214,7 +230,9 @@ class Level:
                 self.push_lines(row_index)
                 lines_cleared += 1
 
-        self.game.update_score(self.game.get_score_rewards()[lines_cleared])
+        self.game.update_score(self.score_rewards[lines_cleared])
+
+        self.difficulty_stage += lines_cleared # add 1 to difficulty stage per line cleared
         '''
         Play sound based on amount of lines cleared
         '''
@@ -303,7 +321,6 @@ class Game:
     game_state = game_states.menu
     file_handler = FileHandler()
     score = 0
-    score_rewards = (1, 5, 15, 30, 60) # reward for: placed block, 1 line cleared, 2 lines cleared... 4 lines cleared
     level = False
     quit = False
 
@@ -478,10 +495,6 @@ class Game:
 
     def set_quit(self):
         self.quit = True
-
-    def get_score_rewards(self):
-        return self.score_rewards
-
 
 def drawTet(screen, piece):
     for actual in (piece.getPiece())[piece.getRotIndex()]:
