@@ -12,6 +12,8 @@ LEVEL_W = GRID_SIZE * 10
 LEVEL_H = GRID_SIZE * 20
 
 pygame.font.init()
+pygame.mixer.init()
+
 FONT_ARIAL_25 = pygame.font.Font(os.path.join("assets", "fonts", "Arialn.ttf"), 25)
 FONT_ARIAL = pygame.font.Font(os.path.join("assets", "fonts", "Arialn.ttf"), 40)
 FONT_ARIAL_55 = pygame.font.Font(os.path.join("assets", "fonts", "Arialn.ttf"), 55)
@@ -43,6 +45,12 @@ KEYBINDS = {"MOVE_L": pygame.K_a,
             "GUI_UP": pygame.K_w,
             "GUI_DOWN": pygame.K_s,
             "GUI_ACTION": pygame.K_RETURN}
+
+SFX = {"DROP": pygame.mixer.Sound(os.path.join("assets", "sfx", "drop.wav")),
+       "CLEAR1": pygame.mixer.Sound(os.path.join("assets", "sfx", "clear1.wav")),
+       "CLEAR2": pygame.mixer.Sound(os.path.join("assets", "sfx", "clear2.wav")),
+       "CLEAR3": pygame.mixer.Sound(os.path.join("assets", "sfx", "clear3.wav")),
+       "CLEAR4": pygame.mixer.Sound(os.path.join("assets", "sfx", "clear4.wav"))}
 
 def get_rotations(piece):
     result = [piece]
@@ -205,7 +213,18 @@ class Level:
                     self.map[row_index][element_index] = 0
                 self.push_lines(row_index)
                 lines_cleared += 1
+
         self.game.update_score(self.game.get_score_rewards()[lines_cleared])
+        '''
+        Play sound based on amount of lines cleared
+        '''
+        for element in SFX.values():
+            if lines_cleared == 0:
+                pygame.mixer.Sound.play(element)
+                break
+            else:
+                lines_cleared -= 1
+
 
     def push_lines(self, row_index):
         del self.map[row_index]
