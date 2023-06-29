@@ -111,17 +111,17 @@ class Tet:
 
     def update(self):
         if self.tick():
-            if self.level.occupied(0, 1): # would collide on move
+            if self.level.occupied(0, 1) or self.level.oob(0, 1): # would collide with another piece on grid or bottom
                 self.level.assimilate()
                 return
             self.y += GRID_SIZE
 
     def move_r(self):
-        if not self.level.occupied(1):
+        if not self.level.occupied(1) and not self.level.oob(1):
             self.x += GRID_SIZE
 
     def move_l(self):
-        if not self.level.occupied(-1):
+        if not self.level.occupied(-1) and not self.level.oob(-1):
             self.x -= GRID_SIZE
 
     def rotate(self):
@@ -137,7 +137,7 @@ class Tet:
         '''
         before_rot = self.rot_index
         self.rotate()
-        if self.level.occupied():
+        if self.level.occupied() or self.level.oob():
             self.rot_index = before_rot
 
     def get_x(self):
@@ -227,16 +227,20 @@ class Level:
             y = self.tet.get_y() // GRID_SIZE + pr[1] + y_off
             x = self.tet.get_x() // GRID_SIZE + pr[0] + x_off
 
-            if y < 0 and x < 10 and x >= 0:
-                return False
+            if x >= 0 and x < 10 and y < 20 and self.map[y][x] != 0:
+                return True
+        return False
+
+    def oob(self, x_off=0, y_off=0): #out of bounds
+        for pr in self.tet.getPiece()[self.tet.getRotIndex()]:
+            y = self.tet.get_y() // GRID_SIZE + pr[1] + y_off
+            x = self.tet.get_x() // GRID_SIZE + pr[0] + x_off
 
             if y >= 20 or x >= 10 or x < 0:
                 return True
 
-            if self.map[y][x] != 0:
-                return True
-
         return False
+
 
     def clear_lines(self):
         lines_cleared = 0
@@ -351,6 +355,7 @@ class Game:
         self.gui = gui
         self.init_state_menu()
         self.held_keys = []
+        self.music_playing = False
 
     def loop(self):
         if self.game_state == self.game_states.menu:
@@ -436,9 +441,11 @@ class Game:
         '''
         Playing
         '''
-        pygame.mixer.music.load(MUSIC["TETRIS"])
-        pygame.mixer.music.play(-1)
-        pygame.mixer.music.set_volume(0.4)
+        if not self.music_playing:
+            pygame.mixer.music.load(MUSIC["TETRIS"])
+            pygame.mixer.music.play(-1)
+            pygame.mixer.music.set_volume(0.4)
+            self.music_playing = True
 
         self.gui.clear()
 
@@ -472,6 +479,7 @@ class Game:
         Game Over Screen
         '''
         pygame.mixer.music.unload()
+        self.music_playing = False
 
         self.gui.clear()
 
