@@ -50,7 +50,8 @@ SFX = {"DROP":   pygame.mixer.Sound(os.path.join("assets", "sfx", "drop.wav")),
        "CLEAR1": pygame.mixer.Sound(os.path.join("assets", "sfx", "clear1.wav")),
        "CLEAR2": pygame.mixer.Sound(os.path.join("assets", "sfx", "clear2.wav")),
        "CLEAR3": pygame.mixer.Sound(os.path.join("assets", "sfx", "clear3.wav")),
-       "CLEAR4": pygame.mixer.Sound(os.path.join("assets", "sfx", "clear4.wav"))}
+       "CLEAR4": pygame.mixer.Sound(os.path.join("assets", "sfx", "clear4.wav")),
+       "DIFFICULTY_UP": pygame.mixer.Sound(os.path.join("assets", "sfx", "difficulty_up.wav"))}
 
 MUSIC = {"TETRIS": os.path.join("assets", "music", "tetris.ogg")}
 
@@ -111,6 +112,11 @@ class Tet:
 
     def update(self):
         if self.tick():
+            self.tpf_adjusted = self.tpf * self.level.get_difficulty() // 1.4
+            self.dropping_tpf = self.tpf_adjusted * 10
+            if self.dropping_tpf < 30:
+                self.dropping_tpf = 30
+
             if self.level.occupied(0, 1) or self.level.oob(0, 1): # would collide with another piece on grid or bottom
                 self.level.assimilate()
                 return
@@ -262,12 +268,17 @@ class Level:
         '''
         Play sound based on amount of lines cleared
         '''
+        if self.difficulty_stage >= self.difficulty_increase_on_stage:
+            sound_to_play = 5
+        else:
+            sound_to_play = lines_cleared
+
         for element in SFX.values():
-            if lines_cleared == 0:
+            if sound_to_play == 0:
                 pygame.mixer.Sound.play(element)
                 break
             else:
-                lines_cleared -= 1
+                sound_to_play -= 1
 
 
     def push_lines(self, row_index):
@@ -278,12 +289,10 @@ class Level:
         return any(map(lambda x: x != 0, self.map[1]))
 
 class FileHandler():
-    path = ""
-    data = [] # list contains tuples containing (name (str), score (int))
-
-    def __init__(self, path="scores"):
+    def __init__(self, path="data"):
         self.path = path + ".txt"
-        self.data = []
+        self.score_data = [] # list contains tuples containing (name (str), score (int))
+        self.setting_data = {} # dict containing settings and values to set those to
         self.parse_file_data()
 
     def add_score_to_data(self, name, score):
@@ -292,37 +301,73 @@ class FileHandler():
         inserts score at sorted position
         '''
         added = False
-        for index, element in enumerate(self.data):
+        for index, element in enumerate(self.score_data):
             if element[1] <= score:
-                self.data.insert(index, (name, score))
+                self.score_data.insert(index, (name, score))
                 added = True
                 break
         
         if not added:
-            self.data.append((name, score))
+            self.score_data.append((name, score))
 
         return self
 
-    def get_data(self):
-        return self.data.copy()
+    def add_setting_to_data(self, setting, value):
+        '''
+        overrides previous setting if setting already in data
+        '''
+        self.setting_data[setting] = value
+        return self
+
+    def get_score_data(self):
+        return self.score_data.copy()
+
+    def get_setting_data(self):
+        return self.setting_data.copy()
 
     def parse_file_data(self):
         '''
         check if file exists, if it does, parse data from file
-        and save as tuples in data member variable
         '''
         if os.path.exists(self.path):
             file = open(self.path, "r")
+
+            print("reading config from file...")
             for line in file:
+                '''
+                parse config 
+                no duplicate settings, uses most recent value of setting found in file
+                '''
                 if line[0] == "#":
                     continue
-                parsed = line.split(':', 1)
+                if line[:10] == "end-config":
+                    break
+
+                parsed = line.split(":", 1)
+                if len(parsed) <= 1:
+                    continue
+
+                setting = parsed[0]
+                value = parsed[1].strip('\n')
+
+                self.setting_data[setting] = value
+                print(f"read '{setting}: {value}' from file")
+
+            print("reading scores from file...")
+            for line in file:
+                '''
+                parse score
+                duplicates allowed
+                '''
+                if line[0] == "#":
+                    continue
+                parsed = line.split(":", 1)
                 name = parsed[0]
                 score = parsed[1].strip('\n')
                 if not score.isnumeric():
                     score = 0
-                self.data.append((name, int(score))) 
-                print(f"added '{name}: {score}' from file to data")
+                self.score_data.append((name, int(score))) 
+                print(f"read '{name}: {score}' from file")
 
     def write_data_to_file(self):
         '''
@@ -333,28 +378,41 @@ class FileHandler():
         file.truncate(0)
         print("file has been cleared")
 
-        file.write("# this file is assumed to be sorted from highest to lowest.\n")
+        file.write("# config\n") 
+        print("writing config to file...")
+        for setting, value in self.setting_data.items():
+            file.write(f"{setting}:{value}\n")
+            print(f"written '{setting}:{value}' to file")
+        file.write("end-config\n")
+        print()
 
-        for element in self.data:
+        file.write("# scores are assumed to be sorted from highest to lowest.\n")
+
+        print("writing scores to file...")
+        for element in self.score_data:
             file.write(f"{element[0]}:{element[1]}\n")
             print(f"written '{element[0]}:{element[1]}' to file")
         file.close()
+
         return self
             
 
 class Game:
-    game_states = Enum("game_states", ["menu", "pause", "playing", "gameover"])
-    game_state = game_states.menu
-    file_handler = FileHandler()
-    score = 0
-    level = False
-    quit = False
 
     def __init__(self, gui):
+        self.file_handler = FileHandler()
+        self.level = False
         self.gui = gui
+        self.quit = False
+        self.score = 0
+        self.game_states = Enum("game_states", ["menu", "pause", "playing", "gameover"])
+        self.game_state = self.game_states.menu
         self.init_state_menu()
         self.held_keys = []
         self.music_playing = False
+        self.set_sound_volume(0.4)
+        self.set_music_volume(0.4)
+        self.apply_file_settings()
 
     def loop(self):
         if self.game_state == self.game_states.menu:
@@ -421,6 +479,29 @@ class Game:
                     if event.key == KEYBINDS["PAUSE"]:
                         self.init_state_playing()
 
+    def apply_file_settings(self):
+        setting_data = self.file_handler.get_setting_data()
+        changed = False
+
+        if "sound_volume" not in setting_data:
+            self.file_handler.add_setting_to_data("sound_volume", self.sound_volume)
+            changed = True
+        if "music_volume" not in setting_data:
+            self.file_handler.add_setting_to_data("music_volume", self.music_volume)
+            changed = True
+
+        if changed:
+            self.file_handler.write_data_to_file()
+
+        for setting, value in setting_data.items():
+            if setting.lower() == "sound_volume":
+                if value.replace('.', '', 1).isnumeric():
+                    self.set_sound_volume(float(value))
+
+            elif setting.lower() == "music_volume":
+                if value.replace('.', '', 1).isnumeric():
+                    self.set_music_volume(float(value))
+
     def init_state_menu(self):
         '''
         Main Menu
@@ -443,7 +524,6 @@ class Game:
         if not self.music_playing:
             pygame.mixer.music.load(MUSIC["TETRIS"])
             pygame.mixer.music.play(-1)
-            pygame.mixer.music.set_volume(0.4)
             self.music_playing = True
 
         self.gui.clear()
@@ -513,7 +593,7 @@ class Game:
         .add_child(gui.Text("High Scores", FONT_ARIAL_55)) \
         .add_child(gui.Text("-------------", FONT_ARIAL_55)) \
 
-        for index, score in enumerate(self.file_handler.get_data()):
+        for index, score in enumerate(self.file_handler.get_score_data()):
             if index > 10:
                 break
             self.gui["score_screen"] \
@@ -537,6 +617,29 @@ class Game:
 
     def set_quit(self):
         self.quit = True
+
+    def set_sound_volume(self, volume):
+        if volume > 1:
+            volume = 1
+        elif volume < 0:
+            volume = 0
+
+        for sound in SFX.values():
+            sound.set_volume(volume)
+
+        self.sound_volume = volume
+        return self
+
+    def set_music_volume(self, volume):
+        if volume > 1:
+            volume = 1
+        elif volume < 0:
+            volume = 0
+
+        pygame.mixer.music.set_volume(volume)
+
+        self.music_volume = volume
+        return self
 
 def drawTet(screen, piece):
     for actual in (piece.getPiece())[piece.getRotIndex()]:
