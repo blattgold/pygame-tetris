@@ -340,7 +340,7 @@ class Button(BoxElement):
         self.default_style()
 
     def default_style(self):
-        self.set_border_w(3) \
+        self.set_border_w(2) \
         .set_border_color((0,0,0)) \
         .set_color_deselected((100,100,100)) \
         .set_color_selected((100,200,100)) \

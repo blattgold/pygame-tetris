@@ -5,3 +5,6 @@ end-config
 # scores are assumed to be sorted from highest to lowest.
 Ashli:14570
 Ashli:8498
+Ashli:111
+Ashli:9
+Ashli:7

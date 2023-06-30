@@ -14,9 +14,9 @@ LEVEL_H = GRID_SIZE * 20
 pygame.font.init()
 pygame.mixer.init()
 
-FONT_ARIAL_25 = pygame.font.Font(os.path.join("assets", "fonts", "Arialn.ttf"), 25)
-FONT_ARIAL = pygame.font.Font(os.path.join("assets", "fonts", "Arialn.ttf"), 40)
-FONT_ARIAL_55 = pygame.font.Font(os.path.join("assets", "fonts", "Arialn.ttf"), 55)
+FONT_PIXEL_25 = pygame.font.Font(os.path.join("assets", "fonts", "Pixel.ttf"), 25)
+FONT_PIXEL_35 = pygame.font.Font(os.path.join("assets", "fonts", "Pixel.ttf"), 35)
+FONT_PIXEL_50 = pygame.font.Font(os.path.join("assets", "fonts", "Pixel.ttf"), 50)
 
 IMG_BLOCK_BLUE = pygame.image.load(os.path.join("assets", "block_blue.png"))
 IMG_BLOCK_CYAN = pygame.image.load(os.path.join("assets", "block_cyan.png"))
@@ -509,12 +509,12 @@ class Game:
         self.gui.clear()
         self.gui["main_menu"] = gui.Container(LEVEL_W // 2,
                                               LEVEL_H // 2)
-        self.gui["main_menu"].add_child(gui.Text("pygame-tetris", FONT_ARIAL_55))
-        self.gui["main_menu"].add_child(gui.Button(gui.Text("Start Game", FONT_ARIAL)) \
+        self.gui["main_menu"].add_child(gui.Text("pygame-tetris", FONT_PIXEL_50))
+        self.gui["main_menu"].add_child(gui.Button(gui.Text("Start Game", FONT_PIXEL_35)) \
         .set_on_click(self,self.init_state_playing, []))
-        self.gui["main_menu"].add_child(gui.Button(gui.Text("High Scores", FONT_ARIAL)) \
+        self.gui["main_menu"].add_child(gui.Button(gui.Text("High Scores", FONT_PIXEL_35)) \
         .set_on_click(self,self.init_state_score, []))
-        self.gui["main_menu"].add_child(gui.Button(gui.Text("Quit", FONT_ARIAL)) \
+        self.gui["main_menu"].add_child(gui.Button(gui.Text("Quit", FONT_PIXEL_35)) \
         .set_on_click(self,self.set_quit, []))
 
     def init_state_playing(self):
@@ -542,14 +542,14 @@ class Game:
         '''
         self.gui["pause_menu"] = gui.Container(LEVEL_W // 2, 
                                                LEVEL_H // 2) \
-        .add_child(gui.Text("Game Paused", FONT_ARIAL_55)) \
-        .add_child(gui.Text("Rewards", FONT_ARIAL)) \
-        .add_child(gui.Text("---------------", FONT_ARIAL)) \
-        .add_child(gui.Text(f"block placed: {self.level.get_score_rewards()[0]}", FONT_ARIAL)) \
-        .add_child(gui.Text(f"1 line cleared: {self.level.get_score_rewards()[1]}", FONT_ARIAL)) \
-        .add_child(gui.Text(f"2 lines cleared: {self.level.get_score_rewards()[2]}", FONT_ARIAL)) \
-        .add_child(gui.Text(f"3 lines cleared: {self.level.get_score_rewards()[3]}", FONT_ARIAL)) \
-        .add_child(gui.Text(f"4 lines cleared: {self.level.get_score_rewards()[4]}", FONT_ARIAL)) \
+        .add_child(gui.Text("Game Paused", FONT_PIXEL_50)) \
+        .add_child(gui.Text("Rewards", FONT_PIXEL_35)) \
+        .add_child(gui.Text("---------------", FONT_PIXEL_35)) \
+        .add_child(gui.Text(f"block placed: {self.level.get_score_rewards()[0]}", FONT_PIXEL_35)) \
+        .add_child(gui.Text(f"1 line cleared: {self.level.get_score_rewards()[1]}", FONT_PIXEL_35)) \
+        .add_child(gui.Text(f"2 lines cleared: {self.level.get_score_rewards()[2]}", FONT_PIXEL_35)) \
+        .add_child(gui.Text(f"3 lines cleared: {self.level.get_score_rewards()[3]}", FONT_PIXEL_35)) \
+        .add_child(gui.Text(f"4 lines cleared: {self.level.get_score_rewards()[4]}", FONT_PIXEL_35)) \
 
         self.game_state = self.game_states.pause
 
@@ -564,10 +564,10 @@ class Game:
 
         self.gui["gameover_enter"] = gui.Container(LEVEL_W // 2,
                                                    LEVEL_H // 2) \
-        .add_child(gui.Text("Game Over", FONT_ARIAL_55)) \
-        .add_child(gui.Text(f"score: {self.score}", FONT_ARIAL)) \
-        .add_child(gui.Text("Please enter your name", FONT_ARIAL)) \
-        .add_child(gui.TextInput(gui.Text("", FONT_ARIAL)) \
+        .add_child(gui.Text("Game Over", FONT_PIXEL_50)) \
+        .add_child(gui.Text(f"score: {self.score}", FONT_PIXEL_35)) \
+        .add_child(gui.Text("Please enter your name", FONT_PIXEL_35)) \
+        .add_child(gui.TextInput(gui.Text("", FONT_PIXEL_35)) \
                    .set_on_action(self, 
                                   self.init_state_score, 
                                   [self.score]))
@@ -590,22 +590,22 @@ class Game:
 
         self.gui["score_screen"] = gui.Container(LEVEL_W // 2,
                                                  LEVEL_H // 2) \
-        .add_child(gui.Text("High Scores", FONT_ARIAL_55)) \
-        .add_child(gui.Text("-------------", FONT_ARIAL_55)) \
+        .add_child(gui.Text("High Scores", FONT_PIXEL_50)) \
+        .add_child(gui.Text("-------------", FONT_PIXEL_50)) \
 
         for index, score in enumerate(self.file_handler.get_score_data()):
             if index > 10:
                 break
             self.gui["score_screen"] \
-            .add_child(gui.Text(f"{score[0]}: {score[1]}", FONT_ARIAL))
-        self.gui["score_screen"].add_child(gui.Button(gui.Text("Back to Title", FONT_ARIAL)).set_on_click(self, self.init_state_menu, [])) \
+            .add_child(gui.Text(f"{score[0]}: {score[1]}", FONT_PIXEL_35))
+        self.gui["score_screen"].add_child(gui.Button(gui.Text("Back to Title", FONT_PIXEL_35)).set_on_click(self, self.init_state_menu, [])) \
 
     def update_score_gui(self):
-        self.gui["score_gui"] = gui.Text("Score: " + str(self.score), FONT_ARIAL)
+        self.gui["score_gui"] = gui.Text("Score: " + str(self.score), FONT_PIXEL_35)
 
     def update_difficulty_gui(self):
         self.gui["difficulty_gui"] = gui.Text("Difficulty: " + str(self.level.get_difficulty()), 
-                                              FONT_ARIAL, 
+                                              FONT_PIXEL_35, 
                                               y = 40)
 
     def update_score(self, score):
