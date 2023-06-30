@@ -78,7 +78,7 @@ class Tet:
     def __init__(self
                  ,level
                  ,x=LEVEL_W//2
-                 ,y=0
+                 ,y=GRID_SIZE
                  ,piece=all_pieces[random.randint(0,6)]
                  ,tpf=2):
         self.piece_w_rot = piece.copy()
@@ -110,6 +110,7 @@ class Tet:
             return False
 
     def update(self):
+        print(self.y)
         if self.tick():
             if self.level.occupied(0, 1) or self.level.oob(0, 1): # would collide with another piece on grid or bottom
                 self.level.assimilate()
@@ -171,11 +172,10 @@ class Tet:
         self.dropping = drop
 
 class Level:
-    map = [[0 for i in range(10)] for j in range(20)]
     tet = 0
 
     def __init__(self, game):
-        self.map = [[0 for i in range(10)] for j in range(20)]
+        self.map = [[0 for i in range(10)] for j in range(21)]
         self.game = game
         self.difficulty = 1 # increases over time
         self.difficulty_stage = 0 # current stage until difficulty increase
@@ -220,14 +220,14 @@ class Level:
             self.map[self.tet.get_y() // GRID_SIZE + pr[1]][self.tet.get_x() // GRID_SIZE + pr[0]] = self.tet.get_color()
 
         self.clear_lines()
-        self.tet = Tet(self, LEVEL_W // 2, 0, all_pieces[random.randint(0,6)])
+        self.tet = Tet(self, piece=all_pieces[random.randint(0,6)])
 
     def occupied(self, x_off=0, y_off=0):
         for pr in self.tet.getPiece()[self.tet.getRotIndex()]:
             y = self.tet.get_y() // GRID_SIZE + pr[1] + y_off
             x = self.tet.get_x() // GRID_SIZE + pr[0] + x_off
 
-            if x >= 0 and x < 10 and y < 20 and self.map[y][x] != 0:
+            if x >= 0 and x < 10 and y < 21 and self.map[y][x] != 0:
                 return True
         return False
 
@@ -236,7 +236,7 @@ class Level:
             y = self.tet.get_y() // GRID_SIZE + pr[1] + y_off
             x = self.tet.get_x() // GRID_SIZE + pr[0] + x_off
 
-            if y >= 20 or x >= 10 or x < 0:
+            if y >= 21 or x >= 10 or x < 0:
                 return True
 
         return False
@@ -273,10 +273,10 @@ class Level:
 
     def push_lines(self, row_index):
         del self.map[row_index]
-        self.map.insert(0, [0 for i in range(10)])
+        self.map.insert(1, [0 for i in range(10)])
 
     def check_game_over(self):
-        return any(map(lambda x: x != 0, self.map[0]))
+        return any(map(lambda x: x != 0, self.map[1]))
 
 class FileHandler():
     path = ""
@@ -542,11 +542,11 @@ class Game:
 def drawTet(screen, piece):
     for actual in (piece.getPiece())[piece.getRotIndex()]:
         screen.blit(BLOCK_IMGS[piece.get_color()], 
-                    (piece.get_x() + actual[0] * GRID_SIZE, 
-                     piece.get_y() + actual[1] * GRID_SIZE))
+                     (piece.get_x() + actual[0] * GRID_SIZE, 
+                     (piece.get_y() + actual[1] * GRID_SIZE) - GRID_SIZE))
 
 def drawLevel(screen, level):
-    for row_index, row  in enumerate(level.get_map()):
+    for row_index, row  in enumerate(level.get_map()[1:]):
         for column_index, column in enumerate(row):
             if column != 0:
                 screen.blit(BLOCK_IMGS[column], (column_index * GRID_SIZE, row_index * GRID_SIZE))
