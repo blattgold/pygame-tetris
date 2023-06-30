@@ -110,7 +110,6 @@ class Tet:
             return False
 
     def update(self):
-        print(self.y)
         if self.tick():
             if self.level.occupied(0, 1) or self.level.oob(0, 1): # would collide with another piece on grid or bottom
                 self.level.assimilate()
